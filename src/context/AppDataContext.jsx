@@ -1,0 +1,894 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { INITIAL_APPLICATIONS } from '../data/mockApplications';
+import { INITIAL_WORKFLOWS } from '../data/mockWorkflows';
+import { INITIAL_COMPLIANCE } from '../data/mockCompliance';
+import { INITIAL_EVC_SCHEDULES } from '../data/mockEVC';
+import { INITIAL_NOTIFICATIONS, INITIAL_ESCALATIONS } from '../data/mockNotifications';
+import { INITIAL_AUDIT_LOGS } from '../data/mockAudit';
+import { INITIAL_USERS } from '../data/mockUsers';
+import { formatDateTime } from '../utils/dateUtils';
+import {
+  applicationsApi,
+  workflowsApi,
+  complianceApi,
+  evcApi,
+  notificationsApi,
+  escalationsApi,
+  auditApi,
+  usersApi,
+  getApiBaseUrl
+} from '../services/apiService';
+
+const AppDataContext = createContext(null);
+
+export const AppDataProvider = ({ children }) => {
+  // ================= DATA MODE STATE ================= //
+  // 'dummy' (default) | 'live'
+  const [dataMode, setDataModeState] = useState(() => {
+    try {
+      const storedMode = localStorage.getItem('aicte_data_mode');
+      return storedMode === 'live' ? 'live' : 'dummy';
+    } catch {
+      return 'dummy';
+    }
+  });
+
+  const [isLiveLoading, setIsLiveLoading] = useState(false);
+  const [liveError, setLiveError] = useState(null);
+  const [backendUrl, setBackendUrl] = useState(getApiBaseUrl());
+
+  // ================= DUMMY / LOCAL MOCK STATE ================= //
+  const [dummyApplications, setDummyApplications] = useState(() => {
+    try {
+      const stored = localStorage.getItem('aicte_applications_store');
+      return stored ? JSON.parse(stored) : INITIAL_APPLICATIONS;
+    } catch {
+      return INITIAL_APPLICATIONS;
+    }
+  });
+
+  const [dummyWorkflows, setDummyWorkflows] = useState(() => {
+    try {
+      const stored = localStorage.getItem('aicte_workflows_store');
+      return stored ? JSON.parse(stored) : INITIAL_WORKFLOWS;
+    } catch {
+      return INITIAL_WORKFLOWS;
+    }
+  });
+
+  const [dummyCompliance, setDummyCompliance] = useState(() => {
+    try {
+      const stored = localStorage.getItem('aicte_compliance_store');
+      return stored ? JSON.parse(stored) : INITIAL_COMPLIANCE;
+    } catch {
+      return INITIAL_COMPLIANCE;
+    }
+  });
+
+  const [dummyEvcSchedules, setDummyEvcSchedules] = useState(() => {
+    try {
+      const stored = localStorage.getItem('aicte_evc_store');
+      return stored ? JSON.parse(stored) : INITIAL_EVC_SCHEDULES;
+    } catch {
+      return INITIAL_EVC_SCHEDULES;
+    }
+  });
+
+  const [dummyNotifications, setDummyNotifications] = useState(() => {
+    try {
+      const stored = localStorage.getItem('aicte_notifications_store');
+      return stored ? JSON.parse(stored) : INITIAL_NOTIFICATIONS;
+    } catch {
+      return INITIAL_NOTIFICATIONS;
+    }
+  });
+
+  const [dummyEscalations, setDummyEscalations] = useState(() => {
+    try {
+      const stored = localStorage.getItem('aicte_escalations_store');
+      return stored ? JSON.parse(stored) : INITIAL_ESCALATIONS;
+    } catch {
+      return INITIAL_ESCALATIONS;
+    }
+  });
+
+  const [dummyAuditLogs, setDummyAuditLogs] = useState(() => {
+    try {
+      const stored = localStorage.getItem('aicte_audit_store');
+      return stored ? JSON.parse(stored) : INITIAL_AUDIT_LOGS;
+    } catch {
+      return INITIAL_AUDIT_LOGS;
+    }
+  });
+
+  const [dummyUsers, setDummyUsers] = useState(() => {
+    try {
+      const stored = localStorage.getItem('aicte_users_store');
+      return stored ? JSON.parse(stored) : INITIAL_USERS;
+    } catch {
+      return INITIAL_USERS;
+    }
+  });
+
+  // ================= LIVE STATE (FROM SPRING BOOT) ================= //
+  const [liveApplications, setLiveApplications] = useState([]);
+  const [liveWorkflows, setLiveWorkflows] = useState([]);
+  const [liveCompliance, setLiveCompliance] = useState([]);
+  const [liveEvcSchedules, setLiveEvcSchedules] = useState([]);
+  const [liveNotifications, setLiveNotifications] = useState([]);
+  const [liveEscalations, setLiveEscalations] = useState([]);
+  const [liveAuditLogs, setLiveAuditLogs] = useState([]);
+  const [liveUsers, setLiveUsers] = useState([]);
+
+  // Sync Dummy Data to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('aicte_applications_store', JSON.stringify(dummyApplications));
+    } catch (e) {
+      console.warn('LocalStorage limit for dummy applications', e);
+    }
+  }, [dummyApplications]);
+
+  useEffect(() => {
+    localStorage.setItem('aicte_workflows_store', JSON.stringify(dummyWorkflows));
+  }, [dummyWorkflows]);
+
+  useEffect(() => {
+    localStorage.setItem('aicte_compliance_store', JSON.stringify(dummyCompliance));
+  }, [dummyCompliance]);
+
+  useEffect(() => {
+    localStorage.setItem('aicte_evc_store', JSON.stringify(dummyEvcSchedules));
+  }, [dummyEvcSchedules]);
+
+  useEffect(() => {
+    localStorage.setItem('aicte_notifications_store', JSON.stringify(dummyNotifications));
+  }, [dummyNotifications]);
+
+  useEffect(() => {
+    localStorage.setItem('aicte_escalations_store', JSON.stringify(dummyEscalations));
+  }, [dummyEscalations]);
+
+  useEffect(() => {
+    localStorage.setItem('aicte_audit_store', JSON.stringify(dummyAuditLogs));
+  }, [dummyAuditLogs]);
+
+  useEffect(() => {
+    localStorage.setItem('aicte_users_store', JSON.stringify(dummyUsers));
+  }, [dummyUsers]);
+
+  // ================= LIVE DATA FETCHING ENGINE ================= //
+  const fetchLiveData = useCallback(async () => {
+    setIsLiveLoading(true);
+    setLiveError(null);
+    const targetUrl = getApiBaseUrl();
+    setBackendUrl(targetUrl);
+
+    try {
+      // Execute parallel calls against live Spring Boot endpoints
+      const results = await Promise.allSettled([
+        applicationsApi.getAll(),
+        workflowsApi.getAll(),
+        complianceApi.getAll(),
+        evcApi.getAll(),
+        notificationsApi.getAll(),
+        escalationsApi.getAll(),
+        auditApi.getAll(),
+        usersApi.getAll()
+      ]);
+
+      const [
+        appsRes,
+        wfRes,
+        compRes,
+        evcRes,
+        notifRes,
+        escRes,
+        auditRes,
+        usersRes
+      ] = results;
+
+      // If all calls were rejected (e.g. backend server is not running)
+      const allFailed = results.every(r => r.status === 'rejected');
+      if (allFailed) {
+        const firstErr = appsRes.reason;
+        const errMsg = firstErr?.message || 'Server connection failed';
+        setLiveError(`Unable to connect to the live backend at ${targetUrl}. Check that the Spring Boot server is running or switch to Dummy Data. (${errMsg})`);
+        setLiveApplications([]);
+        setLiveWorkflows([]);
+        setLiveCompliance([]);
+        setLiveEvcSchedules([]);
+        setLiveNotifications([]);
+        setLiveEscalations([]);
+        setLiveAuditLogs([]);
+        setLiveUsers([]);
+        setIsLiveLoading(false);
+        return;
+      }
+
+      // Populate live state if endpoints succeeded
+      setLiveApplications(appsRes.status === 'fulfilled' ? (appsRes.value.data?.content || appsRes.value.data || []) : []);
+      setLiveWorkflows(wfRes.status === 'fulfilled' ? (wfRes.value.data?.content || wfRes.value.data || []) : []);
+      setLiveCompliance(compRes.status === 'fulfilled' ? (compRes.value.data?.content || compRes.value.data || []) : []);
+      setLiveEvcSchedules(evcRes.status === 'fulfilled' ? (evcRes.value.data?.content || evcRes.value.data || []) : []);
+      setLiveNotifications(notifRes.status === 'fulfilled' ? (notifRes.value.data?.content || notifRes.value.data || []) : []);
+      setLiveEscalations(escRes.status === 'fulfilled' ? (escRes.value.data?.content || escRes.value.data || []) : []);
+      setLiveAuditLogs(auditRes.status === 'fulfilled' ? (auditRes.value.data?.content || auditRes.value.data || []) : []);
+      setLiveUsers(usersRes.status === 'fulfilled' ? (usersRes.value.data?.content || usersRes.value.data || []) : []);
+
+      setIsLiveLoading(false);
+    } catch (err) {
+      console.error('Fatal live backend error:', err);
+      setLiveError(`Unable to connect to the live backend at ${targetUrl}. Check the server connection or switch to Dummy Data.`);
+      setLiveApplications([]);
+      setLiveWorkflows([]);
+      setLiveCompliance([]);
+      setLiveEvcSchedules([]);
+      setLiveNotifications([]);
+      setLiveEscalations([]);
+      setLiveAuditLogs([]);
+      setLiveUsers([]);
+      setIsLiveLoading(false);
+    }
+  }, []);
+
+  // Set Data Mode and persist to localStorage
+  const setDataMode = (mode) => {
+    const validMode = mode === 'live' ? 'live' : 'dummy';
+    setDataModeState(validMode);
+    try {
+      localStorage.setItem('aicte_data_mode', validMode);
+    } catch (e) {
+      console.warn('Could not store data mode in localStorage', e);
+    }
+
+    if (validMode === 'live') {
+      fetchLiveData();
+    } else {
+      setLiveError(null);
+      setIsLiveLoading(false);
+    }
+  };
+
+  // Initial fetch if live mode was persisted on refresh
+  useEffect(() => {
+    if (dataMode === 'live') {
+      fetchLiveData();
+    }
+  }, [dataMode, fetchLiveData]);
+
+  // Active dataset selection: Strictly isolate dummy vs live records
+  const applications = dataMode === 'live' ? liveApplications : dummyApplications;
+  const workflows = dataMode === 'live' ? liveWorkflows : dummyWorkflows;
+  const compliance = dataMode === 'live' ? liveCompliance : dummyCompliance;
+  const evcSchedules = dataMode === 'live' ? liveEvcSchedules : dummyEvcSchedules;
+  const notifications = dataMode === 'live' ? liveNotifications : dummyNotifications;
+  const escalations = dataMode === 'live' ? liveEscalations : dummyEscalations;
+  const auditLogs = dataMode === 'live' ? liveAuditLogs : dummyAuditLogs;
+  const users = dataMode === 'live' ? liveUsers : dummyUsers;
+
+  // Helper to append audit event (local dummy mode)
+  const addAuditLog = ({ entityId, action, previousState, newState, reason, user }) => {
+    const newEntry = {
+      id: `AUD-${Date.now().toString().slice(-6)}`,
+      timestamp: formatDateTime(new Date().toISOString()),
+      user: user?.name || 'Authorized AICTE Official',
+      role: user?.role || 'REGIONAL_OFFICER',
+      entityId,
+      action,
+      previousState: previousState || 'N/A',
+      newState: newState || 'N/A',
+      reason: reason || 'Routine regulatory transition',
+      ipAddress: '10.200.4.88 (Portal Session)'
+    };
+
+    if (dataMode === 'dummy') {
+      setDummyAuditLogs(prev => [newEntry, ...prev]);
+    } else {
+      // In live mode, backend persists audit trail
+      setLiveAuditLogs(prev => [newEntry, ...prev]);
+    }
+  };
+
+  // Helper to push notification
+  const addNotification = (notif) => {
+    const newNotif = {
+      id: `NOTIF-${Date.now().toString().slice(-5)}`,
+      timestamp: formatDateTime(new Date().toISOString()),
+      read: false,
+      ...notif
+    };
+    if (dataMode === 'dummy') {
+      setDummyNotifications(prev => [newNotif, ...prev]);
+    } else {
+      setLiveNotifications(prev => [newNotif, ...prev]);
+    }
+  };
+
+  // ================= APPLICATION ACTIONS ================= //
+
+  const updateApplicationStage = async (appId, newStage, reason, user) => {
+    if (dataMode === 'live') {
+      try {
+        await applicationsApi.advanceStage(appId, { targetStage: newStage, remarks: reason });
+        await fetchLiveData();
+        return;
+      } catch (err) {
+        alert(`Failed to advance stage on live backend: ${err.message}`);
+        return;
+      }
+    }
+
+    // Dummy mode: local update
+    let prevStage = '';
+    setDummyApplications(prev => prev.map(app => {
+      if (app.id === appId) {
+        prevStage = app.currentStage;
+        const updatedTimeline = [
+          ...app.timeline,
+          {
+            stage: newStage,
+            status: 'IN_PROGRESS',
+            date: new Date().toISOString().split('T')[0],
+            note: reason || `Advanced to ${newStage} by ${user?.name}`
+          }
+        ];
+        return {
+          ...app,
+          currentStage: newStage,
+          status: newStage === 'FINAL_APPROVAL' ? 'PENDING_APPROVAL' : 'IN_REVIEW',
+          stageStartDate: new Date().toISOString().split('T')[0],
+          timeline: updatedTimeline
+        };
+      }
+      return app;
+    }));
+
+    addAuditLog({
+      entityId: appId,
+      action: 'STAGE_ADVANCED',
+      previousState: prevStage,
+      newState: newStage,
+      reason,
+      user
+    });
+
+    addNotification({
+      category: 'STAGE_CHANGED',
+      urgency: 'NORMAL',
+      title: `Application ${appId} Advanced`,
+      message: `Application moved from stage ${prevStage} to ${newStage}. Reason: ${reason}`,
+      entityType: 'APPLICATION',
+      entityId: appId,
+      recipientRole: 'COLLEGE_REP',
+      link: `/applications/${appId}`
+    });
+  };
+
+  const returnApplicationDeficiency = async (appId, deficiencyReason, user) => {
+    if (dataMode === 'live') {
+      try {
+        await applicationsApi.returnDeficiency(appId, { reason: deficiencyReason });
+        await fetchLiveData();
+        return;
+      } catch (err) {
+        alert(`Failed to issue deficiency notice on live backend: ${err.message}`);
+        return;
+      }
+    }
+
+    // Dummy mode: local update
+    let targetApp = null;
+    setDummyApplications(prev => prev.map(app => {
+      if (app.id === appId) {
+        targetApp = app;
+        const newObs = {
+          id: `OBS-${Date.now().toString().slice(-4)}`,
+          date: new Date().toISOString().split('T')[0],
+          officer: user?.name || 'Regional Scrutiny Committee',
+          stage: app.currentStage,
+          status: 'DEFICIENT',
+          remarks: deficiencyReason
+        };
+        return {
+          ...app,
+          status: 'DEFICIENCY_NOTIFIED',
+          deficiencyCount: (app.deficiencyCount || 0) + 1,
+          deficiencyReason,
+          observations: [newObs, ...(app.observations || [])]
+        };
+      }
+      return app;
+    }));
+
+    addAuditLog({
+      entityId: appId,
+      action: 'RETURN_FOR_DEFICIENCY',
+      previousState: targetApp?.status || 'IN_REVIEW',
+      newState: 'DEFICIENCY_NOTIFIED',
+      reason: deficiencyReason,
+      user
+    });
+
+    addNotification({
+      category: 'DEFICIENCY_RETURNED',
+      urgency: 'HIGH',
+      title: `Deficiency Notified: ${appId}`,
+      message: `Deficiency observations recorded: "${deficiencyReason}". Mandatory correction required from institution.`,
+      entityType: 'APPLICATION',
+      entityId: appId,
+      recipientRole: 'COLLEGE_REP',
+      link: `/applications/${appId}`
+    });
+  };
+
+  const submitCollegeResponse = async (appId, responseNotes, newDocuments, user) => {
+    if (dataMode === 'live') {
+      try {
+        await applicationsApi.resubmit(appId, { responseNotes, documents: newDocuments });
+        await fetchLiveData();
+        return;
+      } catch (err) {
+        alert(`Failed to submit clarification on live backend: ${err.message}`);
+        return;
+      }
+    }
+
+    // Dummy mode: local update
+    setDummyApplications(prev => prev.map(app => {
+      if (app.id === appId) {
+        const updatedDocs = [...app.documents];
+        if (newDocuments && newDocuments.length) {
+          updatedDocs.push(...newDocuments);
+        }
+        const updatedTimeline = [
+          ...app.timeline,
+          {
+            stage: `${app.currentStage} (Resubmitted)`,
+            status: 'IN_PROGRESS',
+            date: new Date().toISOString().split('T')[0],
+            note: responseNotes || 'Corrected compliance submitted by institution Principal'
+          }
+        ];
+        return {
+          ...app,
+          status: 'RESUBMITTED',
+          deficiencyReason: null,
+          documents: updatedDocs,
+          timeline: updatedTimeline
+        };
+      }
+      return app;
+    }));
+
+    addAuditLog({
+      entityId: appId,
+      action: 'DEFICIENCY_RESUBMISSION',
+      previousState: 'DEFICIENCY_NOTIFIED',
+      newState: 'RESUBMITTED',
+      reason: responseNotes,
+      user
+    });
+
+    addNotification({
+      category: 'COMPLIANCE_RECEIVED',
+      urgency: 'NORMAL',
+      title: `Institution Resubmission: ${appId}`,
+      message: `Institution submitted response & clarification: "${responseNotes}". Ready for re-scrutiny.`,
+      entityType: 'APPLICATION',
+      entityId: appId,
+      recipientRole: 'REGIONAL_OFFICER',
+      link: `/applications/${appId}`
+    });
+  };
+
+  const assignApplicationOfficer = async (appId, officerName, user) => {
+    if (dataMode === 'live') {
+      try {
+        await applicationsApi.assignOfficer(appId, { officerName });
+        await fetchLiveData();
+        return;
+      } catch (err) {
+        alert(`Failed to assign officer on live backend: ${err.message}`);
+        return;
+      }
+    }
+
+    let priorOfficer = '';
+    setDummyApplications(prev => prev.map(app => {
+      if (app.id === appId) {
+        priorOfficer = app.assignedOfficer;
+        return { ...app, assignedOfficer: officerName };
+      }
+      return app;
+    }));
+
+    addAuditLog({
+      entityId: appId,
+      action: 'OFFICER_REASSIGNED',
+      previousState: priorOfficer,
+      newState: officerName,
+      reason: `Assigned scrutiny responsibility to ${officerName}`,
+      user
+    });
+  };
+
+  const createNewApplication = async (newAppPayload, user) => {
+    if (dataMode === 'live') {
+      try {
+        const res = await applicationsApi.create(newAppPayload);
+        await fetchLiveData();
+        return res.data;
+      } catch (err) {
+        alert(`Failed to create application on live backend: ${err.message}`);
+        throw err;
+      }
+    }
+
+    // Dummy mode creation
+    const newId = `AICTE-2026-${newAppPayload.regionCode || 'SW'}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newRecord = {
+      id: newId,
+      institutionName: newAppPayload.institutionName,
+      institutionCode: newAppPayload.institutionCode || '1-34981275',
+      applicationType: newAppPayload.applicationType,
+      programme: newAppPayload.programme || 'Engineering & Technology',
+      region: newAppPayload.region || 'South-Western',
+      state: newAppPayload.state || 'Karnataka',
+      workflowId: newAppPayload.workflowId || 'WF-FULL',
+      currentStage: 'SUBMISSION',
+      status: 'SUBMITTED',
+      priority: newAppPayload.priority || 'NORMAL',
+      assignedOfficer: 'Unassigned (Regional Queue)',
+      officerRole: 'Regional Officer',
+      submissionDate: new Date().toISOString().split('T')[0],
+      stageStartDate: new Date().toISOString().split('T')[0],
+      nextDeadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      deficiencyCount: 0,
+      missingDocCount: 0,
+      observations: [],
+      documents: newAppPayload.documents || [],
+      timeline: [
+        {
+          stage: 'Application Submission',
+          status: 'COMPLETED',
+          date: new Date().toISOString().split('T')[0],
+          note: 'Submitted online via college portal'
+        }
+      ],
+      requestedIntake: newAppPayload.requestedIntake || []
+    };
+
+    setDummyApplications(prev => [newRecord, ...prev]);
+
+    addAuditLog({
+      entityId: newId,
+      action: 'APPLICATION_CREATED',
+      previousState: 'NONE',
+      newState: 'SUBMITTED',
+      reason: `New ${newAppPayload.applicationType} application lodged`,
+      user
+    });
+
+    addNotification({
+      category: 'APPLICATION_SUBMITTED',
+      urgency: 'NORMAL',
+      title: `New Application Lodged: ${newId}`,
+      message: `${newAppPayload.institutionName} lodged application for ${newAppPayload.applicationType}.`,
+      entityType: 'APPLICATION',
+      entityId: newId,
+      recipientRole: 'REGIONAL_OFFICER',
+      link: `/applications/${newId}`
+    });
+
+    return newRecord;
+  };
+
+  // ================= EVC ACTIONS ================= //
+
+  const scheduleEVCVisit = async (evcId, { proposedDate, committeeMembers, mode }, user) => {
+    if (dataMode === 'live') {
+      try {
+        await evcApi.schedule(evcId, { proposedDate, committeeMembers, mode });
+        await fetchLiveData();
+        return;
+      } catch (err) {
+        alert(`Failed to schedule EVC on live backend: ${err.message}`);
+        return;
+      }
+    }
+
+    let priorState = '';
+    setDummyEvcSchedules(prev => prev.map(item => {
+      if (item.id === evcId) {
+        priorState = item.status;
+        return {
+          ...item,
+          status: 'SCHEDULED',
+          proposedDate,
+          committeeMembers: committeeMembers || item.committeeMembers,
+          mode: mode || item.mode
+        };
+      }
+      return item;
+    }));
+
+    addAuditLog({
+      entityId: evcId,
+      action: 'EVC_VISIT_SCHEDULED',
+      previousState: priorState,
+      newState: 'SCHEDULED',
+      reason: `EVC inspection visit scheduled for ${proposedDate} (${mode || 'Physical'})`,
+      user
+    });
+
+    addNotification({
+      category: 'EVC_SCHEDULED',
+      urgency: 'NORMAL',
+      title: `EVC Scheduled for ${proposedDate}`,
+      message: `Expert Visit Committee physical inspection slated for ${proposedDate}. Panel assigned.`,
+      entityType: 'EVC',
+      entityId: evcId,
+      recipientRole: 'EVC_MEMBER',
+      link: '/evc'
+    });
+  };
+
+  const recordEVCCompletion = async (evcId, { observations, status = 'INSPECTION_COMPLETED' }, user) => {
+    if (dataMode === 'live') {
+      try {
+        await evcApi.complete(evcId, { observations, status });
+        await fetchLiveData();
+        return;
+      } catch (err) {
+        alert(`Failed to record EVC completion on live backend: ${err.message}`);
+        return;
+      }
+    }
+
+    setDummyEvcSchedules(prev => prev.map(item => {
+      if (item.id === evcId) {
+        return {
+          ...item,
+          status,
+          completionDate: new Date().toISOString().split('T')[0],
+          reportStatus: 'REPORT_SUBMITTED',
+          observations: observations || item.observations
+        };
+      }
+      return item;
+    }));
+
+    addAuditLog({
+      entityId: evcId,
+      action: 'EVC_COMPLETED',
+      previousState: 'SCHEDULED',
+      newState: status,
+      reason: observations || 'EVC committee inspection report finalized and signed.',
+      user
+    });
+  };
+
+  // ================= COMPLIANCE ACTIONS ================= //
+
+  const verifyComplianceDoc = async (docId, { status, reason }, user) => {
+    if (dataMode === 'live') {
+      try {
+        await complianceApi.verify(docId, { status, reason });
+        await fetchLiveData();
+        return;
+      } catch (err) {
+        alert(`Failed to verify document on live backend: ${err.message}`);
+        return;
+      }
+    }
+
+    let docName = '';
+    setDummyCompliance(prev => prev.map(item => {
+      if (item.id === docId) {
+        docName = item.documentName;
+        return {
+          ...item,
+          verificationStatus: status,
+          status: status === 'VERIFIED' ? 'VERIFIED' : 'ACTION_REQUIRED',
+          notes: reason ? `${item.notes || ''} [Verification note: ${reason}]` : item.notes
+        };
+      }
+      return item;
+    }));
+
+    addAuditLog({
+      entityId: docId,
+      action: status === 'VERIFIED' ? 'DOCUMENT_VERIFIED' : 'DOCUMENT_CORRECTION_REQUESTED',
+      previousState: 'PENDING_VERIFICATION',
+      newState: status,
+      reason: reason || `Document verification outcome: ${status}`,
+      user
+    });
+
+    addNotification({
+      category: 'VERIFICATION_UPDATE',
+      urgency: status === 'VERIFIED' ? 'NORMAL' : 'HIGH',
+      title: `Compliance Document: ${status}`,
+      message: `${docName} status updated to ${status}. Remarks: ${reason || 'Satisfactory'}`,
+      entityType: 'COMPLIANCE',
+      entityId: docId,
+      recipientRole: 'COLLEGE_REP',
+      link: '/compliance'
+    });
+  };
+
+  const uploadComplianceDoc = async (docId, { fileName, fileSize, fileType }, user) => {
+    if (dataMode === 'live') {
+      try {
+        const formData = new FormData();
+        formData.append('fileName', fileName);
+        await complianceApi.upload(docId, formData);
+        await fetchLiveData();
+        return;
+      } catch (err) {
+        alert(`Failed to upload document to live backend: ${err.message}`);
+        return;
+      }
+    }
+
+    setDummyCompliance(prev => prev.map(item => {
+      if (item.id === docId) {
+        return {
+          ...item,
+          documentName: fileName || item.documentName,
+          fileSize: fileSize || '2.4 MB',
+          documentType: fileType || 'PDF',
+          status: 'PENDING_VERIFICATION',
+          verificationStatus: 'PENDING_VERIFICATION',
+          submissionDate: new Date().toISOString().split('T')[0],
+          version: `${parseFloat(item.version || '1.0') + 0.1}`.slice(0, 3)
+        };
+      }
+      return item;
+    }));
+
+    addAuditLog({
+      entityId: docId,
+      action: 'DOCUMENT_UPLOADED',
+      previousState: 'PENDING_SUBMISSION',
+      newState: 'PENDING_VERIFICATION',
+      reason: `Uploaded new version of document: ${fileName}`,
+      user
+    });
+  };
+
+  // ================= NOTIFICATIONS & ESCALATIONS ================= //
+
+  const markNotificationRead = async (notifId) => {
+    if (dataMode === 'live') {
+      try {
+        await notificationsApi.markRead(notifId);
+      } catch (e) {
+        console.warn('Live markRead failed', e);
+      }
+      setLiveNotifications(prev => prev.map(n => n.id === notifId ? { ...n, read: true } : n));
+      return;
+    }
+
+    setDummyNotifications(prev => prev.map(n => n.id === notifId ? { ...n, read: true } : n));
+  };
+
+  const markAllNotificationsRead = async () => {
+    if (dataMode === 'live') {
+      try {
+        await notificationsApi.markAllRead();
+      } catch (e) {
+        console.warn('Live markAllRead failed', e);
+      }
+      setLiveNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      return;
+    }
+
+    setDummyNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const acknowledgeEscalation = async (escId, user) => {
+    if (dataMode === 'live') {
+      try {
+        await escalationsApi.acknowledge(escId, { acknowledgedBy: user?.name });
+        await fetchLiveData();
+        return;
+      } catch (err) {
+        alert(`Failed to acknowledge escalation on live backend: ${err.message}`);
+        return;
+      }
+    }
+
+    setDummyEscalations(prev => prev.map(esc => {
+      if (esc.id === escId) {
+        return {
+          ...esc,
+          status: 'RESOLVED',
+          acknowledgedBy: user?.name || 'Authorized Official'
+        };
+      }
+      return esc;
+    }));
+
+    addAuditLog({
+      entityId: escId,
+      action: 'ESCALATION_RESOLVED',
+      previousState: 'ACTIVE',
+      newState: 'RESOLVED',
+      reason: 'Official acknowledged and addressed escalation condition',
+      user
+    });
+  };
+
+  // Reset to default mock data (Only applies to Dummy Mode)
+  const resetDemoData = () => {
+    localStorage.removeItem('aicte_applications_store');
+    localStorage.removeItem('aicte_workflows_store');
+    localStorage.removeItem('aicte_compliance_store');
+    localStorage.removeItem('aicte_evc_store');
+    localStorage.removeItem('aicte_notifications_store');
+    localStorage.removeItem('aicte_escalations_store');
+    localStorage.removeItem('aicte_audit_store');
+    localStorage.removeItem('aicte_users_store');
+
+    setDummyApplications(INITIAL_APPLICATIONS);
+    setDummyWorkflows(INITIAL_WORKFLOWS);
+    setDummyCompliance(INITIAL_COMPLIANCE);
+    setDummyEvcSchedules(INITIAL_EVC_SCHEDULES);
+    setDummyNotifications(INITIAL_NOTIFICATIONS);
+    setDummyEscalations(INITIAL_ESCALATIONS);
+    setDummyAuditLogs(INITIAL_AUDIT_LOGS);
+    setDummyUsers(INITIAL_USERS);
+  };
+
+  return (
+    <AppDataContext.Provider
+      value={{
+        // Data Mode state & functions
+        dataMode,
+        setDataMode,
+        isLiveLoading,
+        liveError,
+        retryLiveFetch: fetchLiveData,
+        backendUrl,
+
+        // Data arrays (derived dynamically based on active mode)
+        applications,
+        workflows,
+        compliance,
+        evcSchedules,
+        notifications,
+        escalations,
+        auditLogs,
+        users,
+
+        // Actions
+        updateApplicationStage,
+        returnApplicationDeficiency,
+        submitCollegeResponse,
+        assignApplicationOfficer,
+        createNewApplication,
+        scheduleEVCVisit,
+        recordEVCCompletion,
+        verifyComplianceDoc,
+        uploadComplianceDoc,
+        markNotificationRead,
+        markAllNotificationsRead,
+        acknowledgeEscalation,
+        addAuditLog,
+        resetDemoData
+      }}
+    >
+      {children}
+    </AppDataContext.Provider>
+  );
+};
+
+export const useAppData = () => {
+  const context = useContext(AppDataContext);
+  if (!context) {
+    throw new Error('useAppData must be used within an AppDataProvider');
+  }
+  return context;
+};

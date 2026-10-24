@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aicte-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: aicte_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-541345}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d aicte_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aicte-backend
+    restart: on-failure
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/aicte_db
+      DB_USERNAME: postgres
+      DB_PASSWORD: ${DB_PASSWORD:-541345}
+      JWT_SECRET: ${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      CORS_ALLOWED_ORIGINS: "http://localhost:3000,http://localhost:5173"
+      SEED_DATA_ENABLED: "true"
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:
