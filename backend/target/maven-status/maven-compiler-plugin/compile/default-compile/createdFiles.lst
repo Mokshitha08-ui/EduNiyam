@@ -1,10 +1,12 @@
 in/gov/aicte/approval/workflow/entity/WorkflowDefinition.class
 in/gov/aicte/approval/application/entity/Observation$Builder.class
+in/gov/aicte/approval/auth/dto/InstitutionRegisterRequest.class
 in/gov/aicte/approval/common/dto/PageResponse.class
 in/gov/aicte/approval/notification/entity/Escalation$Builder.class
 in/gov/aicte/approval/audit/dto/AuditLogDto.class
 in/gov/aicte/approval/common/exception/BadRequestException.class
 in/gov/aicte/approval/audit/service/AuditService.class
+in/gov/aicte/approval/auth/dto/StaffLoginRequest.class
 in/gov/aicte/approval/audit/dto/AuditLogDto$Builder.class
 in/gov/aicte/approval/auth/AuthController.class
 in/gov/aicte/approval/auth/dto/UserDto.class
@@ -20,12 +22,15 @@ in/gov/aicte/approval/application/entity/ApplicationDocument$Builder.class
 in/gov/aicte/approval/application/dto/ObservationDto.class
 in/gov/aicte/approval/auth/dto/AuthResponse$Builder.class
 in/gov/aicte/approval/application/dto/DeficiencyRequest$Builder.class
+in/gov/aicte/approval/auth/dto/OfficerRequestActionRequest.class
 in/gov/aicte/approval/application/dto/TimelineDto$Builder.class
 in/gov/aicte/approval/application/repository/ApplicationStageHistoryRepository.class
 in/gov/aicte/approval/compliance/dto/ComplianceItemDto$Builder.class
 in/gov/aicte/approval/institution/repository/InstitutionRepository.class
 in/gov/aicte/approval/application/dto/AssignOfficerRequest$Builder.class
+in/gov/aicte/approval/auth/dto/InstitutionRegisterResponse.class
 in/gov/aicte/approval/notification/entity/Escalation.class
+in/gov/aicte/approval/auth/dto/InstitutionLoginRequest.class
 in/gov/aicte/approval/auth/dto/LoginRequest$Builder.class
 in/gov/aicte/approval/evc/entity/EvcSchedule.class
 in/gov/aicte/approval/application/dto/ApplicationDto.class
@@ -39,6 +44,7 @@ in/gov/aicte/approval/evc/dto/EvcScheduleDto$Builder.class
 in/gov/aicte/approval/auth/AuthService.class
 in/gov/aicte/approval/notification/entity/Notification.class
 in/gov/aicte/approval/config/OpenApiConfig.class
+in/gov/aicte/approval/auth/dto/OfficerAccessRequestDto.class
 in/gov/aicte/approval/compliance/entity/ComplianceItem$Builder.class
 in/gov/aicte/approval/common/exception/GlobalExceptionHandler.class
 in/gov/aicte/approval/evc/entity/EvcSchedule$Builder.class
@@ -52,6 +58,7 @@ in/gov/aicte/approval/application/entity/Application.class
 in/gov/aicte/approval/user/service/UserService.class
 in/gov/aicte/approval/evc/dto/EvcCompleteRequest.class
 in/gov/aicte/approval/notification/dto/NotificationDto$Builder.class
+in/gov/aicte/approval/user/controller/AdminOfficerRequestController.class
 in/gov/aicte/approval/application/dto/ResubmitRequest.class
 in/gov/aicte/approval/compliance/dto/VerifyComplianceRequest.class
 in/gov/aicte/approval/workflow/repository/WorkflowDefinitionRepository.class
@@ -65,7 +72,9 @@ in/gov/aicte/approval/common/dto/ApiResponse.class
 in/gov/aicte/approval/security/SecurityConfig.class
 in/gov/aicte/approval/auth/dto/AuthResponse.class
 in/gov/aicte/approval/evc/dto/EvcScheduleDto.class
+in/gov/aicte/approval/user/entity/OfficerAccessRequest.class
 in/gov/aicte/approval/dashboard/DashboardController.class
+in/gov/aicte/approval/user/repository/OfficerAccessRequestRepository.class
 in/gov/aicte/approval/institution/entity/Institution.class
 in/gov/aicte/approval/application/dto/DeficiencyRequest.class
 in/gov/aicte/approval/config/CorsConfig.class
@@ -88,6 +97,7 @@ in/gov/aicte/approval/application/entity/ApplicationStageHistory$Builder.class
 in/gov/aicte/approval/auth/dto/LoginRequest.class
 in/gov/aicte/approval/workflow/dto/WorkflowStageDto.class
 in/gov/aicte/approval/compliance/dto/VerifyComplianceRequest$Builder.class
+in/gov/aicte/approval/auth/dto/InstitutionRegisterResponse$Builder.class
 in/gov/aicte/approval/notification/repository/EscalationRepository.class
 in/gov/aicte/approval/workflow/entity/WorkflowStage.class
 in/gov/aicte/approval/workflow/entity/WorkflowStage$Builder.class
@@ -95,6 +105,7 @@ in/gov/aicte/approval/application/dto/ApplicationDto$Builder.class
 in/gov/aicte/approval/audit/entity/AuditLog.class
 in/gov/aicte/approval/security/UserPrincipal.class
 in/gov/aicte/approval/notification/dto/EscalationDto$Builder.class
+in/gov/aicte/approval/user/entity/OfficerAccessRequest$Builder.class
 in/gov/aicte/approval/application/dto/ApplicationDocumentDto$Builder.class
 in/gov/aicte/approval/evc/dto/EvcMemberDto.class
 in/gov/aicte/approval/security/JwtAuthenticationFilter.class

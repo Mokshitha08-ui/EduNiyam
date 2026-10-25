@@ -30,6 +30,8 @@ public class User {
     private String institutionName;
     @Column(name = "phone", length = 64)
     private String phone;
+    @Column(name = "employee_id", length = 64)
+    private String employeeId;
     @Column(name = "avatar_url", length = 512)
     private String avatarUrl;
     @Column(name = "status", nullable = false, length = 32)
@@ -144,6 +146,14 @@ public class User {
         this.phone = phone;
     }
 
+    public String getEmployeeId() {
+        return this.employeeId;
+    }
+
+    public void setEmployeeId(String employeeId) {
+        this.employeeId = employeeId;
+    }
+
     public String getAvatarUrl() {
         return this.avatarUrl;
     }
@@ -199,6 +209,7 @@ public class User {
         private String institutionCode;
         private String institutionName;
         private String phone;
+        private String employeeId;
         private String avatarUrl;
         private String status = "ACTIVE";
         private String lastLogin;
@@ -257,6 +268,11 @@ public class User {
             return this;
         }
 
+        public Builder employeeId(String employeeId) {
+            this.employeeId = employeeId;
+            return this;
+        }
+
         public Builder avatarUrl(String avatarUrl) {
             this.avatarUrl = avatarUrl;
             return this;
@@ -283,7 +299,9 @@ public class User {
         }
 
         public User build() {
-            return new User(this.id, this.name, this.email, this.passwordHash, this.role, this.department, this.region, this.institutionCode, this.institutionName, this.phone, this.avatarUrl, this.status, this.lastLogin, this.createdAt, this.updatedAt);
+            User u = new User(this.id, this.name, this.email, this.passwordHash, this.role, this.department, this.region, this.institutionCode, this.institutionName, this.phone, this.avatarUrl, this.status, this.lastLogin, this.createdAt, this.updatedAt);
+            u.setEmployeeId(this.employeeId);
+            return u;
         }
     }
 

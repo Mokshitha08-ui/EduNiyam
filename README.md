@@ -1,152 +1,145 @@
 # AICTE Approval Management System
 
-> **AICTE Institutional Approval Workflow Automation & Compliance Management System**  
-> Centralized e-governance portal for AICTE officials to manage institutional approval applications, scrutiny stages, Expert Visit Committee (EVC) inspections, compliance requirements, land lease validities, deadline risk scoring, and automated escalations.
+> **Unified Institutional & Official Approval Lifecycle Management Platform**  
+> Centralized e-governance system for Technical Institutions and AICTE Regulatory Officials to manage approvals, stage-wise scrutinies, physical Expert Visit Committee (EVC) inspections, and compliance tracking.
 
 ---
 
-## 🏛️ Executive Summary & Key Highlights
-This system addresses institutional pendency, regulatory compliance tracking, and inspection bottlenecks in the AICTE approval lifecycle. Built desktop-first with responsive tablet/mobile capabilities, it provides customized, role-based workflows for officials and colleges.
+## 🏛️ Unified Authentication Architecture
 
-### 🌟 Core Capabilities
-1. **Executive Approval Dashboard:** High-level KPIs, SLA health, urgent action follow-up queue, interactive Recharts visualizations (processing trends, stage breakdown, regional pendency).
-2. **End-to-End Application Management Desk:** Complete application lifecycle from submission to scrutiny, EVC, SAC/SHC hearing, and Council approval, with multi-criteria filtering, sorting, pagination, CSV exports, and validated application submission.
-3. **Transparent Deadline-Risk Engine:** Deterministic, rule-based scoring (Low / Medium / High) that explains factors (timeline consumption %, days remaining, deficiency cycles, missing statutory documents) without opaque "black-box" claims.
-4. **Configurable Workflow Pipeline & Bottleneck Tracker:** Interactive Kanban board showing stage-by-stage counts, ageing, and automated bottleneck warnings.
-5. **Expert Visit Committee (EVC) Scheduling Module:** Interactive inspection queue, dual-view (list queue & month calendar), automated committee roster management from a national expert pool, conflict detection, and signed inspection report logging.
-6. **Unified Compliance & Statutory Repository:** Tracking for 30-year land leases, fire safety NOCs, FDR lien letters, Divyangjan access certificates, and 7th CPC undertakings with version tracking, mock uploads, and verification stamps.
-7. **Dedicated Institutional College Portal:** Scoped dashboard for college representatives (*Vivekananda Institute of Technology*) with real-time application tracking, deficiency clarification submissions, and a multi-step new application wizard.
-8. **Unified Alert & Escalation Centre:** Real-time deadline notifications, deficiency alerts, and hierarchical administrative escalations (Level 1 Regional, Level 2 Bureau Head) with acknowledgement tracking.
-9. **Regulatory Audit Trail:** Chronological ledger of all state movements, officer actions, timestamps, and justifications.
-10. **Enterprise RBAC & One-Click Demo Personas:** Dedicated views for 6 distinct roles with instant switching for administrative evaluation.
-11. **Dual Data Mode (Dummy vs. Live Backend):** Integrated toggle allowing instant switching between self-contained mock demo data and real Spring Boot REST API streaming.
+The portal implements one cohesive, unified authentication system with two primary access streams:
 
----
+1. **College / Institution**:
+   - **Institutional Sign In**: Verified authentication with Institution Code / College ID, Registered Official Email, and Password.
+   - **Institutional Sign Up**: Complete institutional registration with institution metadata (Type, State, District, Postal Address) and authorized representative credentials.
+   - **Verification Lifecycle**: New colleges enter `PENDING_VERIFICATION` status until validated by the AICTE Regional Bureau.
+   - **Institutional Data Isolation**: Automatically isolates application records, documents, and compliance filings strictly to the authenticated institution's Code.
 
-## 🔐 Authentication & Demo Accounts
-
-When opening the portal URL, the **Login page opens first**. Unauthenticated access to dashboard routes is strictly prevented via frontend route guards (`ProtectedRoute.jsx`).
-
-| Role Name | Demo Email | Demo Password | Default Destination |
-| :--- | :--- | :--- | :--- |
-| **System Administrator** | `admin@demo.gov.in` | `demoPassword123` | `/dashboard` |
-| **Regional Officer** | `officer@demo.gov.in` | `demoPassword123` | `/dashboard` |
-| **Bureau Officer (HQ)** | `bureau@demo.gov.in` | `demoPassword123` | `/dashboard` |
-| **EVC Committee Member** | `committee@demo.gov.in` | `demoPassword123` | `/evc` |
-| **Compliance Reviewer** | `compliance@demo.gov.in` | `demoPassword123` | `/compliance` |
-| **College Representative** | `college@demo.edu.in` | `demoPassword123` | `/college-portal` |
-
-> 💡 **Quick Evaluation Tip:** The login screen features **One-Click Demo Persona buttons** for instantaneous role switching during demonstration reviews. You can also switch roles at any time using the **Role dropdown in the top navigation bar**.
-> 
-> *Alternative demo password:* `aicte@demo123`
+2. **AICTE Officer**:
+   - **Designation Selection Desk**: Responsive 5-cadre designation grid with Lucide icons, role specifications, and descriptions:
+     1. **Regional Officer** (`REGIONAL_OFFICER`): Regional applications, assignments, and stage-wise monitoring.
+     2. **Bureau Officer** (`BUREAU_OFFICER`): Application scrutiny, workflow processing, and deficiency management.
+     3. **EVC Committee Member** (`EVC_MEMBER`): Assigned inspections, EVC schedules, and committee evaluations.
+     4. **Compliance Reviewer** (`COMPLIANCE_REVIEWER`): Compliance documents, undertakings, and deadlines.
+     5. **System Administrator** (`SYSTEM_ADMIN` / `ADMIN`): User management, workflow configuration, and request approvals.
+   - **Designation-Specific Sign In**: Official email and password authentication with server-side role validation. Mismatched cadres are strictly rejected (e.g. logging into Regional Officer with a Bureau Officer account is blocked).
+   - **Officer Access Request (Sign Up)**: Official staff registration with Employee ID, Designation, Department, Region, and Contact. Sets status to `PENDING_APPROVAL`. System Administrator registration is disallowed for public sign-up.
+   - **Administrator Access Request Desk**: Integrated into the Administrator dashboard (`/users`), allowing authorized administrators to review, approve, or reject officer access requests and assign roles with full audit logs.
 
 ---
 
-## 🔄 Dual Data Mode (Dummy Data vs. Live Data)
+## 🔐 Demo Credentials & Quick Evaluation Matrix
 
-The portal features an integrated **Data Mode Toggle** in the top navigation bar and login screen:
+When opening the portal at `http://localhost:5173`, unauthenticated users are directed to `/login`.
 
-### 1. Dummy Data Mode (Default)
-- **Behavior:** Utilizes the rich pre-seeded mock dataset stored in client `localStorage`.
-- **Purpose:** Ideal for offline demonstrations, user testing, and verifying frontend workflow logic.
-- **Safety:** Mutations (advancing stages, creating applications, uploading compliance documents) update local mock state only and never send updates to the real backend.
-- **Visual Indicator:** Displayed with an active **"Dummy Data"** badge.
+### Documented Demo Accounts
 
-### 2. Live Data Mode
-- **Behavior:** Makes live HTTP REST requests via Axios to the Spring Boot backend configured in `VITE_API_BASE_URL`.
-- **No Mock Fallback:** Live Data mode strictly queries the backend and displays actual live records. It never silently substitutes mock data for real records.
-- **Offline / Failure Handling:** If the Spring Boot backend is offline or an API request fails, a prominent banner is displayed:
-  > *"Unable to connect to the live backend at `http://localhost:8080/api/v1`. Check that the Spring Boot server is running or switch to Dummy Data."*
-  Includes an interactive **Retry Connection** button and a **Switch to Dummy Data** button.
-- **Empty States:** When the backend connects but contains no records, proper clean empty states are rendered in tables and dashboards.
-- **Persistence:** Selected data mode (`dummy` or `live`) is preserved in `localStorage` across page reloads.
+| Category | Role / Cadre | Identifier / Code | Email Address | Password | Destination Dashboard |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **College / Institution** | `COLLEGE_REP` | `1-34981275` | `college@demo.edu.in` | `demoPassword123` | Institutional Portal (`/college-portal`) |
+| **AICTE Officer** | `REGIONAL_OFFICER` | — | `officer@demo.gov.in` | `demoPassword123` | Approval Dashboard (`/dashboard`) |
+| **AICTE Officer** | `BUREAU_OFFICER` | — | `bureau@demo.gov.in` | `demoPassword123` | Approval Dashboard (`/dashboard`) |
+| **AICTE Officer** | `EVC_MEMBER` | — | `committee@demo.gov.in` | `demoPassword123` | EVC Scheduling & Roster (`/evc`) |
+| **AICTE Officer** | `COMPLIANCE_REVIEWER` | — | `compliance@demo.gov.in` | `demoPassword123` | Compliance Repository (`/compliance`) |
+| **AICTE Officer** | `SYSTEM_ADMIN` | — | `admin@demo.gov.in` | `demoPassword123` | Master Admin Console (`/dashboard`) |
 
----
-
-## 🛠️ Technology Stack
-- **Frontend Framework:** React 18 with Vite 5 (JavaScript JSX)
-- **Routing:** React Router DOM v6 with role-based route guards (`ProtectedRoute.jsx`)
-- **Styling:** Tailwind CSS with custom AICTE Government Navy (`#0f2942`) enterprise palette & Inter font
-- **Data Visualizations:** Recharts (Area charts, Donut charts, Bar charts)
-- **Icons:** Lucide React
-- **HTTP Client:** Centralized Axios instance (`apiClient.js` & `apiService.js`) with request/response interceptors and JWT authorization headers.
-- **State Management & Persistence:** React Context API (`AuthContext`, `AppDataContext`) with dual-mode data synchronization.
+> 💡 **One-Click Auto Fill:** In **Dummy Data** mode, click the **"Auto Fill"** button on any Sign In form to instantly populate that role's credentials for rapid testing.
+> *Alternative password:* `aicte@demo123`
 
 ---
 
-## 🚀 Quick Start & Installation
+## 🧭 Authentication Navigation & Routing Map
 
-### Prerequisites
-- Node.js (v18.0 or higher)
-- npm (v9.0 or higher)
+```
+/ (Root) ──> Redirects to /login if unauthenticated
+               │
+               ▼
+             /login (Unified Authentication Landing Desk)
+               ├── Category 1: College / Institution
+               │     ├── Institutional Sign In ──────────> /college-portal
+               │     └── Institutional Sign Up ──────────> /pending-verification (status: PENDING_VERIFICATION)
+               │
+               └── Category 2: AICTE Officer
+                     ├── Designation Selection Grid (5 Cards)
+                     │     ├── 1. Regional Officer
+                     │     ├── 2. Bureau Officer
+                     │     ├── 3. EVC Committee Member
+                     │     ├── 4. Compliance Reviewer
+                     │     └── 5. System Administrator
+                     │
+                     └── Selected Card Desk:
+                           ├── Designation Sign In ──────> Role Dashboard (/dashboard, /evc, /compliance)
+                           └── Request Access ───────────> /officer-pending-approval (status: PENDING_APPROVAL)
+```
 
-### Setup Instructions
+---
+
+## 🔌 Backend REST API Specification
+
+### 1. Authentication Endpoints (`/api/v1/auth`)
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/auth/institution/login` | Authenticate college representative by College ID, Email, Password |
+| `POST` | `/auth/institutions/register` | Register new technical institution (`PENDING_VERIFICATION`) |
+| `POST` | `/auth/staff/login` | Authenticate AICTE Officer with designation role validation |
+| `POST` | `/auth/staff/access-requests` | Submit new Officer Access Request (`PENDING_APPROVAL`) |
+| `GET` | `/auth/me` | Fetch authenticated user profile from JWT Bearer token |
+| `POST` | `/auth/logout` | Clear user session |
+
+### 2. Administrator Access Request Endpoints (`/api/v1/admin/officer-requests`)
+*(Restricted to `ADMIN` / `SYSTEM_ADMIN`)*
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/admin/officer-requests` | List all officer access requests (optional `?status=PENDING_APPROVAL`) |
+| `POST` | `/admin/officer-requests/{id}/approve` | Approve request, activate official account, and assign permitted role |
+| `POST` | `/admin/officer-requests/{id}/reject` | Reject request with recorded audit justification |
+
+---
+
+## 🗄️ Database Setup & Flyway Migrations (PostgreSQL 18)
+
+- **Database:** `aicte_db` on `localhost:5432`
+- **User:** `postgres`
+- **Password:** `541345`
+
+### Migration History
+1. `V1__init_schema.sql`: Initial schema creating 15 core tables.
+2. `V2__institutional_signup.sql`: Adds institution status, district, and type tracking.
+3. `V3__officer_access_requests.sql`: Adds `staff_officer_access_requests` table with status indexes and `employee_id` tracking.
+
+---
+
+## 🚀 Running the System
+
+### 1. Spring Boot Backend
 ```bash
-# 1. Navigate to the project directory
+cd /Users/mokshithagali/Desktop/aicte/backend
+
+# Run automated tests
+mvn test
+
+# Package JAR
+mvn package -DskipTests
+
+# Run Server (Port 8080)
+java -jar target/aicte-approval-backend-1.0.0-SNAPSHOT.jar
+```
+- Health Check: `http://localhost:8080/api/v1/health`
+- Swagger UI Documentation: `http://localhost:8080/api/v1/swagger-ui.html`
+
+### 2. React + Vite Frontend
+```bash
 cd /Users/mokshithagali/Desktop/aicte
 
-# 2. Install dependencies
+# Install dependencies
 npm install
 
-# 3. Start development server
-npm run dev
+# Start development server
+npm run dev -- --host 0.0.0.0 --port 5173
 
-# 4. Access the portal in your browser
-# URL: http://localhost:3000
-```
-
-### Production Build & Preview
-```bash
+# Production build
 npm run build
-npm run preview
 ```
-
----
-
-## 🔌 Spring Boot Backend Integration
-
-### 1. Environment Variable Configuration
-Copy `.env.example` to `.env` (or configure your shell):
-```bash
-cp .env.example .env
-```
-Set `VITE_API_BASE_URL` to your running Spring Boot server endpoint:
-```env
-VITE_API_BASE_URL=http://localhost:8080/api/v1
-```
-
-### 2. Required Spring Boot REST API Endpoints
-
-The service layer in [`src/services/apiService.js`](file:///Users/mokshithagali/Desktop/aicte/src/services/apiService.js) connects to the following REST endpoints:
-
-| Domain | Method & Path | Description |
-| :--- | :--- | :--- |
-| **Health** | `GET /api/v1/health` | Backend status & heartbeat check |
-| **Auth** | `POST /api/v1/auth/login` | Authenticate credentials and return JWT bearer token |
-| **Applications** | `GET /api/v1/applications` | Query applications with filters (`region`, `stage`, `status`) |
-| **Applications** | `GET /api/v1/applications/{id}` | Application details, timeline & attachments |
-| **Applications** | `POST /api/v1/applications` | Lodge new approval application |
-| **Applications** | `POST /api/v1/applications/{id}/advance-stage` | Advance application to next workflow stage |
-| **Applications** | `POST /api/v1/applications/{id}/deficiency` | Return application with mandatory deficiency remarks |
-| **Applications** | `POST /api/v1/applications/{id}/resubmit` | Institution resubmission with rectification evidence |
-| **Applications** | `PATCH /api/v1/applications/{id}/assign-officer` | Assign scrutiny officer |
-| **Workflows** | `GET /api/v1/workflows` | Configured approval pathways and SLA days |
-| **Compliance** | `GET /api/v1/compliance` | Registered land leases, safety NOCs & FDRs |
-| **Compliance** | `POST /api/v1/compliance/{id}/verify` | Official verification / correction request |
-| **Compliance** | `POST /api/v1/compliance/{id}/upload` | Upload statutory document evidence (PDF/Images) |
-| **EVC** | `GET /api/v1/evc/schedules` | Expert Visit Committee inspection roster |
-| **EVC** | `POST /api/v1/evc/schedules/{id}/assign` | Assign committee panel and inspection date |
-| **EVC** | `POST /api/v1/evc/schedules/{id}/complete` | Record visit completion & upload report |
-| **Alerts** | `GET /api/v1/notifications` | Deadline reminders, deficiency notices |
-| **Alerts** | `PATCH /api/v1/notifications/{id}/read` | Mark individual notification as read |
-| **Escalations** | `GET /api/v1/escalations` | Level 1 & Level 2 SLA breach escalations |
-| **Escalations** | `POST /api/v1/escalations/{id}/acknowledge` | Acknowledge & resolve escalation |
-| **Audit** | `GET /api/v1/audit` | Regulatory immutable event ledger |
-| **Users** | `GET /api/v1/users` | List portal user accounts and RBAC roles |
-
-*For complete Request/Response JSON payloads and database entity schemas, refer to [`API_SPECIFICATION.md`](file:///Users/mokshithagali/Desktop/aicte/API_SPECIFICATION.md).*
-
----
-
-## ⚖️ Disclaimer
-*All institutional names, application IDs, dates, and compliance records are illustrative mock representations for demonstration and evaluation of the AICTE Approval Management System.*
+- Access Frontend Portal: `http://localhost:5173`

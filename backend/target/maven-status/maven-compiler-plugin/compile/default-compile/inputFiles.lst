@@ -28,7 +28,13 @@
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/auth/AuthController.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/auth/AuthService.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/auth/dto/AuthResponse.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/auth/dto/InstitutionLoginRequest.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/auth/dto/InstitutionRegisterRequest.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/auth/dto/InstitutionRegisterResponse.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/auth/dto/LoginRequest.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/auth/dto/OfficerAccessRequestDto.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/auth/dto/OfficerRequestActionRequest.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/auth/dto/StaffLoginRequest.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/auth/dto/UserDto.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/common/HealthController.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/common/dto/ApiResponse.java
@@ -73,8 +79,11 @@
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/security/JwtTokenProvider.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/security/SecurityConfig.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/security/UserPrincipal.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/user/controller/AdminOfficerRequestController.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/user/controller/UserController.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/user/entity/OfficerAccessRequest.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/user/entity/User.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/user/repository/OfficerAccessRequestRepository.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/user/repository/UserRepository.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/user/service/UserService.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/workflow/controller/WorkflowController.java

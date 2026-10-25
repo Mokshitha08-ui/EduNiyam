@@ -6,6 +6,7 @@ import in.gov.aicte.approval.application.repository.*;
 import in.gov.aicte.approval.audit.entity.AuditLog;
 import in.gov.aicte.approval.audit.repository.AuditLogRepository;
 import in.gov.aicte.approval.common.dto.PageResponse;
+import in.gov.aicte.approval.common.exception.BadRequestException;
 import in.gov.aicte.approval.common.exception.ResourceNotFoundException;
 import in.gov.aicte.approval.notification.entity.Notification;
 import in.gov.aicte.approval.notification.repository.NotificationRepository;
@@ -83,6 +84,14 @@ public class ApplicationService {
                 predicates.add(cb.equal(root.get("priority"), priority.trim()));
             }
 
+            // Institutional isolation: If logged-in user is a College Representative, filter strictly to their institution code
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof in.gov.aicte.approval.security.UserPrincipal principal) {
+                if ("COLLEGE_REP".equalsIgnoreCase(principal.getRole()) && principal.getInstitutionCode() != null) {
+                    predicates.add(cb.equal(root.get("institutionCode"), principal.getInstitutionCode()));
+                }
+            }
+
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
@@ -100,6 +109,16 @@ public class ApplicationService {
     public ApplicationDto getApplicationById(String id) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Application", "id", id));
+
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof in.gov.aicte.approval.security.UserPrincipal principal) {
+            if ("COLLEGE_REP".equalsIgnoreCase(principal.getRole()) && principal.getInstitutionCode() != null) {
+                if (!principal.getInstitutionCode().equalsIgnoreCase(application.getInstitutionCode())) {
+                    throw new BadRequestException("Access denied: You do not have permission to view applications belonging to other institutions.");
+                }
+            }
+        }
+
         return ApplicationDto.fromEntity(application);
     }
 

@@ -133,7 +133,36 @@ export const authApi = {
   login: async (credentials) => {
     return apiClient.post('/auth/login', credentials);
   },
+  loginStaff: async (credentials) => {
+    return apiClient.post('/auth/staff/login', credentials);
+  },
+  createOfficerAccessRequest: async (data) => {
+    return apiClient.post('/auth/staff/access-requests', data);
+  },
+  loginInstitution: async (credentials) => {
+    return apiClient.post('/auth/institution/login', credentials);
+  },
+  registerInstitution: async (registrationData) => {
+    return apiClient.post('/auth/institutions/register', registrationData);
+  },
   me: async () => {
     return apiClient.get('/auth/me');
+  },
+  logout: async () => {
+    return apiClient.post('/auth/logout');
+  },
+};
+
+// Administrator Officer Request Management API
+export const adminApi = {
+  getOfficerRequests: async (status) => {
+    const params = status ? { status } : {};
+    return apiClient.get('/admin/officer-requests', { params });
+  },
+  approveOfficerRequest: async (id, payload = {}) => {
+    return apiClient.post(`/admin/officer-requests/${id}/approve`, payload);
+  },
+  rejectOfficerRequest: async (id, payload = {}) => {
+    return apiClient.post(`/admin/officer-requests/${id}/reject`, payload);
   },
 };

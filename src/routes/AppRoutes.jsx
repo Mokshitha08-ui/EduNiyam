@@ -17,12 +17,18 @@ import { UsersRoles } from '../pages/UsersRoles';
 import { AuditTrail } from '../pages/AuditTrail';
 import { Settings } from '../pages/Settings';
 import { NotFound } from '../pages/NotFound';
+import { PendingVerification } from '../pages/PendingVerification';
+import { OfficerPendingApproval } from '../pages/OfficerPendingApproval';
 
 export const AppRoutes = () => {
   return (
     <Routes>
       {/* Public Login Route */}
       <Route path="/login" element={<Login />} />
+
+      {/* Pending Status Routes */}
+      <Route path="/pending-verification" element={<PendingVerification />} />
+      <Route path="/officer-pending-approval" element={<OfficerPendingApproval />} />
 
       {/* Protected Portal Routes under AppLayout */}
       <Route

@@ -51,6 +51,14 @@ public class ComplianceService {
             if (type != null && !type.isBlank()) {
                 predicates.add(cb.equal(root.get("requirementType"), type.trim()));
             }
+
+            // Institutional isolation: If logged-in user is a College Representative, filter strictly to their institution code
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof in.gov.aicte.approval.security.UserPrincipal principal) {
+                if ("COLLEGE_REP".equalsIgnoreCase(principal.getRole()) && principal.getInstitutionCode() != null) {
+                    predicates.add(cb.equal(root.get("institutionCode"), principal.getInstitutionCode()));
+                }
+            }
             return cb.and(predicates.toArray(new Predicate[0]));
         };
 
