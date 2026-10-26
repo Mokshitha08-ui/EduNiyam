@@ -34,6 +34,12 @@ public class WorkflowDefinition {
     @Column(name = "is_default")
     private boolean isDefault = false;
 
+    @Column(name = "status", length = 32)
+    private String status = "ACTIVE";
+
+    @Column(name = "applicable_application_types", length = 512)
+    private String applicableApplicationTypes;
+
     @Column(name = "rules_json", columnDefinition = "TEXT")
     private String rulesJson;
 
@@ -49,7 +55,8 @@ public class WorkflowDefinition {
     }
 
     public WorkflowDefinition(String id, String name, String code, String description, String version,
-                              LocalDate effectiveDate, boolean isDefault, String rulesJson,
+                              LocalDate effectiveDate, boolean isDefault, String status,
+                              String applicableApplicationTypes, String rulesJson,
                               List<WorkflowStage> stages, LocalDateTime createdAt) {
         this.id = id;
         this.name = name;
@@ -58,6 +65,8 @@ public class WorkflowDefinition {
         this.version = version;
         this.effectiveDate = effectiveDate;
         this.isDefault = isDefault;
+        this.status = status != null ? status : "ACTIVE";
+        this.applicableApplicationTypes = applicableApplicationTypes;
         this.rulesJson = rulesJson;
         this.stages = stages != null ? stages : new ArrayList<>();
         this.createdAt = createdAt;
@@ -127,6 +136,22 @@ public class WorkflowDefinition {
         this.isDefault = isDefault;
     }
 
+    public String getStatus() {
+        return this.status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getApplicableApplicationTypes() {
+        return this.applicableApplicationTypes;
+    }
+
+    public void setApplicableApplicationTypes(String applicableApplicationTypes) {
+        this.applicableApplicationTypes = applicableApplicationTypes;
+    }
+
     public String getRulesJson() {
         return this.rulesJson;
     }
@@ -163,6 +188,8 @@ public class WorkflowDefinition {
         private String version;
         private LocalDate effectiveDate;
         private boolean isDefault = false;
+        private String status = "ACTIVE";
+        private String applicableApplicationTypes;
         private String rulesJson;
         private List<WorkflowStage> stages = new ArrayList<>();
         private LocalDateTime createdAt;
@@ -204,6 +231,16 @@ public class WorkflowDefinition {
             return this;
         }
 
+        public Builder status(String status) {
+            this.status = status;
+            return this;
+        }
+
+        public Builder applicableApplicationTypes(String applicableApplicationTypes) {
+            this.applicableApplicationTypes = applicableApplicationTypes;
+            return this;
+        }
+
         public Builder rulesJson(String rulesJson) {
             this.rulesJson = rulesJson;
             return this;
@@ -220,7 +257,7 @@ public class WorkflowDefinition {
         }
 
         public WorkflowDefinition build() {
-            return new WorkflowDefinition(id, name, code, description, version, effectiveDate, isDefault, rulesJson, stages, createdAt);
+            return new WorkflowDefinition(id, name, code, description, version, effectiveDate, isDefault, status, applicableApplicationTypes, rulesJson, stages, createdAt);
         }
     }
 }

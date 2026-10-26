@@ -27,6 +27,22 @@ public class Observation {
     private String remarks;
     @Column(name = "clauses", columnDefinition = "TEXT")
     private String clauses;
+    @Column(name = "response_notes", columnDefinition = "TEXT")
+    private String responseNotes;
+    @Column(name = "resolved_at")
+    private LocalDateTime resolvedAt;
+    @Column(name = "type", length = 32)
+    private String type = "DEFICIENCY";
+    @Column(name = "severity", length = 32)
+    private String severity = "MAJOR";
+    @Column(name = "corrective_action", columnDefinition = "TEXT")
+    private String correctiveAction;
+    @Column(name = "deadline")
+    private LocalDate deadline;
+    @Column(name = "verification_notes", columnDefinition = "TEXT")
+    private String verificationNotes;
+    @Column(name = "verified_by", length = 128)
+    private String verifiedBy;
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -35,6 +51,10 @@ public class Observation {
     }
 
     public Observation(String id, Application application, LocalDate date, String officer, String stage, String status, String remarks, String clauses, LocalDateTime createdAt) {
+        this(id, application, date, officer, stage, status, remarks, clauses, null, null, createdAt);
+    }
+
+    public Observation(String id, Application application, LocalDate date, String officer, String stage, String status, String remarks, String clauses, String responseNotes, LocalDateTime resolvedAt, LocalDateTime createdAt) {
         this.id = id;
         this.application = application;
         this.date = date;
@@ -43,6 +63,8 @@ public class Observation {
         this.status = status;
         this.remarks = remarks;
         this.clauses = clauses;
+        this.responseNotes = responseNotes;
+        this.resolvedAt = resolvedAt;
         this.createdAt = createdAt;
     }
 
@@ -110,12 +132,76 @@ public class Observation {
         this.clauses = clauses;
     }
 
+    public String getResponseNotes() {
+        return this.responseNotes;
+    }
+
+    public void setResponseNotes(String responseNotes) {
+        this.responseNotes = responseNotes;
+    }
+
+    public LocalDateTime getResolvedAt() {
+        return this.resolvedAt;
+    }
+
+    public void setResolvedAt(LocalDateTime resolvedAt) {
+        this.resolvedAt = resolvedAt;
+    }
+
     public LocalDateTime getCreatedAt() {
         return this.createdAt;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getType() {
+        return this.type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public String getSeverity() {
+        return this.severity;
+    }
+
+    public void setSeverity(String severity) {
+        this.severity = severity;
+    }
+
+    public String getCorrectiveAction() {
+        return this.correctiveAction;
+    }
+
+    public void setCorrectiveAction(String correctiveAction) {
+        this.correctiveAction = correctiveAction;
+    }
+
+    public LocalDate getDeadline() {
+        return this.deadline;
+    }
+
+    public void setDeadline(LocalDate deadline) {
+        this.deadline = deadline;
+    }
+
+    public String getVerificationNotes() {
+        return this.verificationNotes;
+    }
+
+    public void setVerificationNotes(String verificationNotes) {
+        this.verificationNotes = verificationNotes;
+    }
+
+    public String getVerifiedBy() {
+        return this.verifiedBy;
+    }
+
+    public void setVerifiedBy(String verifiedBy) {
+        this.verifiedBy = verifiedBy;
     }
 
     public static Builder builder() {
@@ -131,6 +217,14 @@ public class Observation {
         private String status;
         private String remarks;
         private String clauses;
+        private String responseNotes;
+        private LocalDateTime resolvedAt;
+        private String type = "DEFICIENCY";
+        private String severity = "MAJOR";
+        private String correctiveAction;
+        private LocalDate deadline;
+        private String verificationNotes;
+        private String verifiedBy;
         private LocalDateTime createdAt;
 
         public Builder() {}
@@ -170,8 +264,58 @@ public class Observation {
             return this;
         }
 
+        public Builder deficiencyText(String deficiencyText) {
+            this.remarks = deficiencyText;
+            return this;
+        }
+
         public Builder clauses(String clauses) {
             this.clauses = clauses;
+            return this;
+        }
+
+        public Builder clause(String clause) {
+            this.clauses = clause;
+            return this;
+        }
+
+        public Builder responseNotes(String responseNotes) {
+            this.responseNotes = responseNotes;
+            return this;
+        }
+
+        public Builder resolvedAt(LocalDateTime resolvedAt) {
+            this.resolvedAt = resolvedAt;
+            return this;
+        }
+
+        public Builder type(String type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder severity(String severity) {
+            this.severity = severity;
+            return this;
+        }
+
+        public Builder correctiveAction(String correctiveAction) {
+            this.correctiveAction = correctiveAction;
+            return this;
+        }
+
+        public Builder deadline(LocalDate deadline) {
+            this.deadline = deadline;
+            return this;
+        }
+
+        public Builder verificationNotes(String verificationNotes) {
+            this.verificationNotes = verificationNotes;
+            return this;
+        }
+
+        public Builder verifiedBy(String verifiedBy) {
+            this.verifiedBy = verifiedBy;
             return this;
         }
 
@@ -181,7 +325,14 @@ public class Observation {
         }
 
         public Observation build() {
-            return new Observation(this.id, this.application, this.date, this.officer, this.stage, this.status, this.remarks, this.clauses, this.createdAt);
+            Observation obs = new Observation(this.id, this.application, this.date, this.officer, this.stage, this.status, this.remarks, this.clauses, this.responseNotes, this.resolvedAt, this.createdAt);
+            obs.setType(this.type);
+            obs.setSeverity(this.severity);
+            obs.setCorrectiveAction(this.correctiveAction);
+            obs.setDeadline(this.deadline);
+            obs.setVerificationNotes(this.verificationNotes);
+            obs.setVerifiedBy(this.verifiedBy);
+            return obs;
         }
     }
 

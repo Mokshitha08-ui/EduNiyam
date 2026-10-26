@@ -482,10 +482,14 @@ export const AppDataProvider = ({ children }) => {
     });
   };
 
-  const assignApplicationOfficer = async (appId, officerName, user) => {
+  const assignApplicationOfficer = async (appId, officerData, user) => {
+    const officerName = typeof officerData === 'string' ? officerData : officerData?.officerName;
+    const officerId = typeof officerData === 'object' ? officerData?.officerId : null;
+    const reason = typeof officerData === 'object' ? (officerData?.reason || 'Assigned by regional officer') : 'Assigned by regional officer';
+
     if (dataMode === 'live') {
       try {
-        await applicationsApi.assignOfficer(appId, { officerName });
+        await applicationsApi.assignOfficer(appId, { officerName, officerId, reason });
         await fetchLiveData();
         return;
       } catch (err) {
@@ -498,7 +502,13 @@ export const AppDataProvider = ({ children }) => {
     setDummyApplications(prev => prev.map(app => {
       if (app.id === appId) {
         priorOfficer = app.assignedOfficer;
-        return { ...app, assignedOfficer: officerName };
+        return {
+          ...app,
+          assignedOfficer: officerName,
+          assignedOfficerId: officerId,
+          assignmentReason: reason,
+          assignedAt: new Date().toISOString()
+        };
       }
       return app;
     }));
@@ -506,9 +516,9 @@ export const AppDataProvider = ({ children }) => {
     addAuditLog({
       entityId: appId,
       action: 'OFFICER_REASSIGNED',
-      previousState: priorOfficer,
+      previousState: priorOfficer || 'UNASSIGNED',
       newState: officerName,
-      reason: `Assigned scrutiny responsibility to ${officerName}`,
+      reason: reason,
       user
     });
   };
@@ -520,13 +530,14 @@ export const AppDataProvider = ({ children }) => {
         await fetchLiveData();
         return res.data;
       } catch (err) {
-        alert(`Failed to create application on live backend: ${err.message}`);
+        alert(`Failed to create application on live backend: ${err.response?.data?.message || err.message}`);
         throw err;
       }
     }
 
     // Dummy mode creation
-    const newId = `AICTE-2026-${newAppPayload.regionCode || 'SW'}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const isDraft = newAppPayload.status === 'DRAFT';
+    const newId = `AICTE-APP-2026-${Math.floor(100000 + Math.random() * 900000)}`;
     const newRecord = {
       id: newId,
       institutionName: newAppPayload.institutionName,
@@ -536,24 +547,26 @@ export const AppDataProvider = ({ children }) => {
       region: newAppPayload.region || 'South-Western',
       state: newAppPayload.state || 'Karnataka',
       workflowId: newAppPayload.workflowId || 'WF-FULL',
-      currentStage: 'SUBMISSION',
-      status: 'SUBMITTED',
+      currentStage: isDraft ? 'DRAFT' : 'SUBMISSION',
+      status: isDraft ? 'DRAFT' : 'SUBMITTED',
       priority: newAppPayload.priority || 'NORMAL',
-      assignedOfficer: 'Unassigned (Regional Queue)',
+      assignedOfficer: isDraft ? 'Draft Preparation' : 'Unassigned (Regional Queue)',
       officerRole: 'Regional Officer',
-      submissionDate: new Date().toISOString().split('T')[0],
+      submissionDate: isDraft ? null : new Date().toISOString().split('T')[0],
       stageStartDate: new Date().toISOString().split('T')[0],
-      nextDeadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      nextDeadline: isDraft
+        ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       deficiencyCount: 0,
       missingDocCount: 0,
       observations: [],
       documents: newAppPayload.documents || [],
       timeline: [
         {
-          stage: 'Application Submission',
+          stage: isDraft ? 'Draft Preparation' : 'Application Submission',
           status: 'COMPLETED',
           date: new Date().toISOString().split('T')[0],
-          note: 'Submitted online via college portal'
+          note: isDraft ? 'Draft application initiated and saved' : 'Submitted online via college portal'
         }
       ],
       requestedIntake: newAppPayload.requestedIntake || []
@@ -563,25 +576,154 @@ export const AppDataProvider = ({ children }) => {
 
     addAuditLog({
       entityId: newId,
-      action: 'APPLICATION_CREATED',
+      action: isDraft ? 'APPLICATION_DRAFT_CREATED' : 'APPLICATION_CREATED',
       previousState: 'NONE',
+      newState: isDraft ? 'DRAFT' : 'SUBMITTED',
+      reason: isDraft
+        ? `Draft ${newAppPayload.applicationType} application saved`
+        : `New ${newAppPayload.applicationType} application lodged`,
+      user
+    });
+
+    if (!isDraft) {
+      addNotification({
+        category: 'APPLICATION_SUBMITTED',
+        urgency: 'NORMAL',
+        title: `New Application Lodged: ${newId}`,
+        message: `${newAppPayload.institutionName} lodged application for ${newAppPayload.applicationType}.`,
+        entityType: 'APPLICATION',
+        entityId: newId,
+        recipientRole: 'REGIONAL_OFFICER',
+        link: `/applications/${newId}`
+      });
+    }
+
+    return newRecord;
+  };
+
+  const updateApplicationDraft = async (appId, updatedPayload, user) => {
+    if (dataMode === 'live') {
+      try {
+        const res = await applicationsApi.update(appId, updatedPayload);
+        await fetchLiveData();
+        return res.data;
+      } catch (err) {
+        alert(`Failed to update application draft on live backend: ${err.response?.data?.message || err.message}`);
+        throw err;
+      }
+    }
+
+    // Dummy mode: update local application
+    let updatedApp = null;
+    setDummyApplications(prev => prev.map(app => {
+      if (app.id === appId) {
+        updatedApp = {
+          ...app,
+          ...updatedPayload,
+          requestedIntake: updatedPayload.requestedIntake || app.requestedIntake,
+          updatedAt: new Date().toISOString()
+        };
+        return updatedApp;
+      }
+      return app;
+    }));
+
+    addAuditLog({
+      entityId: appId,
+      action: 'APPLICATION_DRAFT_UPDATED',
+      previousState: 'DRAFT',
+      newState: 'DRAFT',
+      reason: 'Application draft progressive edits saved',
+      user
+    });
+
+    return updatedApp;
+  };
+
+  const submitDraftApplication = async (appId, user) => {
+    if (dataMode === 'live') {
+      try {
+        const res = await applicationsApi.submitDraft(appId);
+        await fetchLiveData();
+        return res.data;
+      } catch (err) {
+        alert(`Failed to submit application on live backend: ${err.response?.data?.message || err.message}`);
+        throw err;
+      }
+    }
+
+    // Dummy mode: submit local draft
+    let submittedApp = null;
+    setDummyApplications(prev => prev.map(app => {
+      if (app.id === appId) {
+        const updatedTimeline = [
+          ...(app.timeline || []),
+          {
+            stage: 'Application Submission',
+            status: 'COMPLETED',
+            date: new Date().toISOString().split('T')[0],
+            note: 'Application formally verified and submitted by institution'
+          }
+        ];
+        submittedApp = {
+          ...app,
+          status: 'SUBMITTED',
+          currentStage: 'SUBMISSION',
+          submissionDate: new Date().toISOString().split('T')[0],
+          stageStartDate: new Date().toISOString().split('T')[0],
+          nextDeadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          timeline: updatedTimeline
+        };
+        return submittedApp;
+      }
+      return app;
+    }));
+
+    addAuditLog({
+      entityId: appId,
+      action: 'APPLICATION_SUBMITTED',
+      previousState: 'DRAFT',
       newState: 'SUBMITTED',
-      reason: `New ${newAppPayload.applicationType} application lodged`,
+      reason: 'Application draft formally submitted by institution',
       user
     });
 
     addNotification({
       category: 'APPLICATION_SUBMITTED',
       urgency: 'NORMAL',
-      title: `New Application Lodged: ${newId}`,
-      message: `${newAppPayload.institutionName} lodged application for ${newAppPayload.applicationType}.`,
+      title: `Application Formally Submitted: ${appId}`,
+      message: `${user?.institution || 'Institution'} submitted approval application. Assigned to Regional Scrutiny Queue.`,
       entityType: 'APPLICATION',
-      entityId: newId,
+      entityId: appId,
       recipientRole: 'REGIONAL_OFFICER',
-      link: `/applications/${newId}`
+      link: `/applications/${appId}`
     });
 
-    return newRecord;
+    return submittedApp;
+  };
+
+  const deleteDraftApplication = async (appId, user) => {
+    if (dataMode === 'live') {
+      try {
+        await applicationsApi.deleteDraft(appId);
+        await fetchLiveData();
+        return;
+      } catch (err) {
+        alert(`Failed to delete draft on live backend: ${err.response?.data?.message || err.message}`);
+        throw err;
+      }
+    }
+
+    setDummyApplications(prev => prev.filter(app => app.id !== appId));
+
+    addAuditLog({
+      entityId: appId,
+      action: 'APPLICATION_DRAFT_DELETED',
+      previousState: 'DRAFT',
+      newState: 'DELETED',
+      reason: 'Draft application discarded by institution',
+      user
+    });
   };
 
   // ================= EVC ACTIONS ================= //
@@ -821,6 +963,129 @@ export const AppDataProvider = ({ children }) => {
     });
   };
 
+  // Workflow Template Management Actions
+  const createWorkflowTemplate = async (templateData, user) => {
+    if (dataMode === 'live') {
+      try {
+        const res = await workflowsApi.create(templateData);
+        await fetchLiveData();
+        return res.data;
+      } catch (err) {
+        throw new Error(err.response?.data?.message || err.message || 'Failed to create workflow template');
+      }
+    }
+
+    const newId = templateData.id || `WF-${Date.now()}`;
+    const newTemplate = {
+      ...templateData,
+      id: newId,
+      status: templateData.status || 'DRAFT',
+      version: templateData.version || '1.0.0',
+      stages: templateData.stages || []
+    };
+
+    setDummyWorkflows(prev => [...prev, newTemplate]);
+
+    addAuditLog({
+      entityId: newId,
+      action: 'WORKFLOW_CREATED',
+      previousState: 'N/A',
+      newState: newTemplate.status,
+      reason: `New workflow template created: ${newTemplate.name}`,
+      user
+    });
+
+    return newTemplate;
+  };
+
+  const updateWorkflowTemplate = async (workflowId, templateData, user) => {
+    if (dataMode === 'live') {
+      try {
+        const res = await workflowsApi.update(workflowId, templateData);
+        await fetchLiveData();
+        return res.data;
+      } catch (err) {
+        throw new Error(err.response?.data?.message || err.message || 'Failed to update workflow template');
+      }
+    }
+
+    setDummyWorkflows(prev => prev.map(wf => {
+      if (wf.id === workflowId) {
+        return {
+          ...wf,
+          ...templateData,
+          stages: templateData.stages || wf.stages
+        };
+      }
+      return wf;
+    }));
+
+    addAuditLog({
+      entityId: workflowId,
+      action: 'WORKFLOW_UPDATED',
+      previousState: 'CURRENT',
+      newState: 'UPDATED',
+      reason: `Workflow template configuration modified`,
+      user
+    });
+  };
+
+  const activateWorkflowTemplate = async (workflowId, user) => {
+    if (dataMode === 'live') {
+      try {
+        const res = await workflowsApi.activate(workflowId);
+        await fetchLiveData();
+        return res.data;
+      } catch (err) {
+        throw new Error(err.response?.data?.message || err.message || 'Failed to activate workflow template');
+      }
+    }
+
+    setDummyWorkflows(prev => prev.map(wf => {
+      if (wf.id === workflowId) {
+        return { ...wf, status: 'ACTIVE' };
+      }
+      return wf;
+    }));
+
+    addAuditLog({
+      entityId: workflowId,
+      action: 'WORKFLOW_ACTIVATED',
+      previousState: 'INACTIVE',
+      newState: 'ACTIVE',
+      reason: `Workflow template activated by administrator`,
+      user
+    });
+  };
+
+  const deactivateWorkflowTemplate = async (workflowId, user) => {
+    if (dataMode === 'live') {
+      try {
+        const res = await workflowsApi.deactivate(workflowId);
+        await fetchLiveData();
+        return res.data;
+      } catch (err) {
+        throw new Error(err.response?.data?.message || err.message || 'Failed to deactivate workflow template');
+      }
+    }
+
+    setDummyWorkflows(prev => prev.map(wf => {
+      if (wf.id === workflowId) {
+        return { ...wf, status: 'INACTIVE' };
+      }
+      return wf;
+    }));
+
+    addAuditLog({
+      entityId: workflowId,
+      action: 'WORKFLOW_DEACTIVATED',
+      previousState: 'ACTIVE',
+      newState: 'INACTIVE',
+      reason: `Workflow template deactivated by administrator`,
+      user
+    });
+  };
+
   // Reset to default mock data (Only applies to Dummy Mode)
   const resetDemoData = () => {
     localStorage.removeItem('aicte_applications_store');
@@ -869,6 +1134,13 @@ export const AppDataProvider = ({ children }) => {
         submitCollegeResponse,
         assignApplicationOfficer,
         createNewApplication,
+        updateApplicationDraft,
+        submitDraftApplication,
+        deleteDraftApplication,
+        createWorkflowTemplate,
+        updateWorkflowTemplate,
+        activateWorkflowTemplate,
+        deactivateWorkflowTemplate,
         scheduleEVCVisit,
         recordEVCCompletion,
         verifyComplianceDoc,

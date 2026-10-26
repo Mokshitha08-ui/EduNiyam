@@ -8,15 +8,22 @@ public class EvcMemberDto {
     private String role;
     private String affiliation;
     private String phone;
+    private String userId;
+    private String assignedBy;
+    private java.time.LocalDateTime assignedAt;
 
     public EvcMemberDto() {
     }
 
-    public EvcMemberDto(String name, String role, String affiliation, String phone) {
+    public EvcMemberDto(String name, String role, String affiliation, String phone,
+                        String userId, String assignedBy, java.time.LocalDateTime assignedAt) {
         this.name = name;
         this.role = role;
         this.affiliation = affiliation;
         this.phone = phone;
+        this.userId = userId;
+        this.assignedBy = assignedBy;
+        this.assignedAt = assignedAt;
     }
 
     public String getName() {
@@ -51,6 +58,30 @@ public class EvcMemberDto {
         this.phone = phone;
     }
 
+    public String getUserId() {
+        return this.userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getAssignedBy() {
+        return this.assignedBy;
+    }
+
+    public void setAssignedBy(String assignedBy) {
+        this.assignedBy = assignedBy;
+    }
+
+    public java.time.LocalDateTime getAssignedAt() {
+        return this.assignedAt;
+    }
+
+    public void setAssignedAt(java.time.LocalDateTime assignedAt) {
+        this.assignedAt = assignedAt;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -60,6 +91,9 @@ public class EvcMemberDto {
         private String role;
         private String affiliation;
         private String phone;
+        private String userId;
+        private String assignedBy;
+        private java.time.LocalDateTime assignedAt;
 
         public Builder() {}
 
@@ -83,8 +117,24 @@ public class EvcMemberDto {
             return this;
         }
 
+        public Builder userId(String userId) {
+            this.userId = userId;
+            return this;
+        }
+
+        public Builder assignedBy(String assignedBy) {
+            this.assignedBy = assignedBy;
+            return this;
+        }
+
+        public Builder assignedAt(java.time.LocalDateTime assignedAt) {
+            this.assignedAt = assignedAt;
+            return this;
+        }
+
         public EvcMemberDto build() {
-            return new EvcMemberDto(this.name, this.role, this.affiliation, this.phone);
+            return new EvcMemberDto(this.name, this.role, this.affiliation, this.phone,
+                    this.userId, this.assignedBy, this.assignedAt);
         }
     }
 
@@ -94,6 +144,9 @@ public class EvcMemberDto {
                 .role(entity.getRole())
                 .affiliation(entity.getAffiliation())
                 .phone(entity.getPhone())
+                .userId(entity.getUserId())
+                .assignedBy(entity.getAssignedBy())
+                .assignedAt(entity.getAssignedAt())
                 .build();
     }
 }

@@ -192,6 +192,21 @@ public class DataSeeder {
                         .avatarUrl("https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&fit=crop&q=80")
                         .phone("+91 98450 71829")
                         .lastLogin("2026-10-24 12:10 PM")
+                        .build(),
+                User.builder()
+                        .id("USR-007")
+                        .name("Dr. M. S. Kulkarni")
+                        .email("college2@demo.edu.in")
+                        .passwordHash(encodedPass)
+                        .role("COLLEGE_REP")
+                        .department("Principal Office")
+                        .region("Western")
+                        .institutionName("Maharashtra Institute of Technology & Engineering, Pune")
+                        .institutionCode("1-10492811")
+                        .status("ACTIVE")
+                        .avatarUrl("https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&fit=crop&q=80")
+                        .phone("+91 98220 11223")
+                        .lastLogin("2026-10-24 12:10 PM")
                         .build()
         );
 
@@ -217,18 +232,20 @@ public class DataSeeder {
                 .code("SCRUTINY_EVC_SAC_SHC")
                 .description("Applicable for New Institution, Increase in Intake, or Significant Change in Site")
                 .version("2026.2.1")
+                .applicableApplicationTypes("New Technical Institution, Increase in Intake / New Course, Change of Site / Infrastructure")
                 .effectiveDate(LocalDate.of(2026, 4, 1))
                 .isDefault(true)
+                .status("ACTIVE")
                 .rulesJson("{\"allowReturnForDeficiency\":true,\"maxDeficiencyCycles\":3,\"deficiencyResolutionDays\":7,\"escalationThresholdDays\":14}")
                 .build();
         workflowRepository.save(wfFull);
 
         List<WorkflowStage> stagesFull = List.of(
-                WorkflowStage.builder().id("STG-01-F").workflow(wfFull).name("Application Submission").code("SUBMISSION").stageOrder(1).targetDays(3).roleAllowed("COLLEGE_REP").build(),
-                WorkflowStage.builder().id("STG-02-F").workflow(wfFull).name("Document Scrutiny").code("SCRUTINY").stageOrder(2).targetDays(7).roleAllowed("REGIONAL_OFFICER").build(),
-                WorkflowStage.builder().id("STG-03-F").workflow(wfFull).name("EVC Physical Inspection").code("EVC").stageOrder(3).targetDays(10).roleAllowed("EVC_MEMBER").build(),
-                WorkflowStage.builder().id("STG-04-F").workflow(wfFull).name("SAC / SHC Hearing Committee").code("SAC_SHC").stageOrder(4).targetDays(5).roleAllowed("BUREAU_OFFICER").build(),
-                WorkflowStage.builder().id("STG-05-F").workflow(wfFull).name("Executive Council Final Decision").code("FINAL_APPROVAL").stageOrder(5).targetDays(5).roleAllowed("ADMIN").build()
+                WorkflowStage.builder().id("STG-01-F").workflow(wfFull).name("Application Submission").code("SUBMISSION").stageOrder(1).targetDays(3).roleAllowed("COLLEGE_REP").isMandatory(true).stageType("SUBMISSION").build(),
+                WorkflowStage.builder().id("STG-02-F").workflow(wfFull).name("Document Scrutiny").code("SCRUTINY").stageOrder(2).targetDays(7).roleAllowed("REGIONAL_OFFICER").isMandatory(true).stageType("SCRUTINY").build(),
+                WorkflowStage.builder().id("STG-03-F").workflow(wfFull).name("EVC Physical Inspection").code("EVC").stageOrder(3).targetDays(10).roleAllowed("EVC_MEMBER").isMandatory(true).stageType("EVC").build(),
+                WorkflowStage.builder().id("STG-04-F").workflow(wfFull).name("SAC / SHC Hearing Committee").code("SAC_SHC").stageOrder(4).targetDays(5).roleAllowed("BUREAU_OFFICER").isMandatory(true).stageType("HEARING").build(),
+                WorkflowStage.builder().id("STG-05-F").workflow(wfFull).name("Executive Council Final Decision").code("FINAL_APPROVAL").stageOrder(5).targetDays(5).roleAllowed("ADMIN").isMandatory(true).stageType("APPROVAL").build()
         );
         stageRepository.saveAll(stagesFull);
 
@@ -238,11 +255,21 @@ public class DataSeeder {
                 .code("SCRUTINY_EVC")
                 .description("Applicable for Introduction of New Technical Courses or Additional Divisions")
                 .version("2026.1.4")
+                .applicableApplicationTypes("Introduction of New Technical Courses, Additional Divisions")
                 .effectiveDate(LocalDate.of(2026, 4, 1))
                 .isDefault(false)
+                .status("ACTIVE")
                 .rulesJson("{\"allowReturnForDeficiency\":true,\"maxDeficiencyCycles\":2,\"deficiencyResolutionDays\":7,\"escalationThresholdDays\":12}")
                 .build();
         workflowRepository.save(wfScrutinyEvc);
+
+        List<WorkflowStage> stagesScrutinyEvc = List.of(
+                WorkflowStage.builder().id("STG-01-SE").workflow(wfScrutinyEvc).name("Application Submission").code("SUBMISSION").stageOrder(1).targetDays(3).roleAllowed("COLLEGE_REP").isMandatory(true).stageType("SUBMISSION").build(),
+                WorkflowStage.builder().id("STG-02-SE").workflow(wfScrutinyEvc).name("Document Scrutiny").code("SCRUTINY").stageOrder(2).targetDays(7).roleAllowed("REGIONAL_OFFICER").isMandatory(true).stageType("SCRUTINY").build(),
+                WorkflowStage.builder().id("STG-03-SE").workflow(wfScrutinyEvc).name("EVC Physical Inspection").code("EVC").stageOrder(3).targetDays(10).roleAllowed("EVC_MEMBER").isMandatory(true).stageType("EVC").build(),
+                WorkflowStage.builder().id("STG-05-SE").workflow(wfScrutinyEvc).name("Executive Council Final Decision").code("FINAL_APPROVAL").stageOrder(4).targetDays(5).roleAllowed("ADMIN").isMandatory(true).stageType("APPROVAL").build()
+        );
+        stageRepository.saveAll(stagesScrutinyEvc);
 
         WorkflowDefinition wfOnlyScrutiny = WorkflowDefinition.builder()
                 .id("WF-ONLY-SCRUTINY")
@@ -250,11 +277,20 @@ public class DataSeeder {
                 .code("ONLY_SCRUTINY")
                 .description("Routine Extension of Approval (EoA) without intake variations or compliance infringements")
                 .version("2026.1.0")
+                .applicableApplicationTypes("Extension of Approval (EoA)")
                 .effectiveDate(LocalDate.of(2026, 1, 15))
                 .isDefault(false)
+                .status("ACTIVE")
                 .rulesJson("{\"allowReturnForDeficiency\":true,\"maxDeficiencyCycles\":1,\"deficiencyResolutionDays\":5,\"escalationThresholdDays\":10}")
                 .build();
         workflowRepository.save(wfOnlyScrutiny);
+
+        List<WorkflowStage> stagesOnlyScrutiny = List.of(
+                WorkflowStage.builder().id("STG-01-OS").workflow(wfOnlyScrutiny).name("Application Submission").code("SUBMISSION").stageOrder(1).targetDays(2).roleAllowed("COLLEGE_REP").isMandatory(true).stageType("SUBMISSION").build(),
+                WorkflowStage.builder().id("STG-02-OS").workflow(wfOnlyScrutiny).name("Document Scrutiny").code("SCRUTINY").stageOrder(2).targetDays(5).roleAllowed("REGIONAL_OFFICER").isMandatory(true).stageType("SCRUTINY").build(),
+                WorkflowStage.builder().id("STG-05-OS").workflow(wfOnlyScrutiny).name("Executive Council Final Decision").code("FINAL_APPROVAL").stageOrder(3).targetDays(3).roleAllowed("ADMIN").isMandatory(true).stageType("APPROVAL").build()
+        );
+        stageRepository.saveAll(stagesOnlyScrutiny);
     }
 
     private void seedApplications() {

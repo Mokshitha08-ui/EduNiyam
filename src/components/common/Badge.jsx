@@ -73,6 +73,9 @@ export const StatusBadge = ({ status }) => {
     case 'SUBMITTED':
       return <Badge variant="primary" dot>{status.replace(/_/g, ' ')}</Badge>;
 
+    case 'DRAFT':
+      return <Badge variant="default" dot>DRAFT</Badge>;
+
     default:
       return <Badge variant="default">{String(status || 'UNKNOWN').replace(/_/g, ' ')}</Badge>;
   }

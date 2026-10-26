@@ -1,5 +1,6 @@
 package in.gov.aicte.approval.auth.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import in.gov.aicte.approval.user.entity.User;
 
 public class UserDto {
@@ -16,6 +17,9 @@ public class UserDto {
     private String phone;
     private String status;
     private String lastLogin;
+
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String password;
 
     public UserDto() {
     }
@@ -129,6 +133,14 @@ public class UserDto {
 
     public void setLastLogin(String lastLogin) {
         this.lastLogin = lastLogin;
+    }
+
+    public String getPassword() {
+        return this.password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public static Builder builder() {

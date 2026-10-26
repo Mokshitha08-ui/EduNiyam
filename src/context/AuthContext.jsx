@@ -48,6 +48,18 @@ export const AuthProvider = ({ children }) => {
           const msg = apiErr.response?.data?.message || apiErr.message || 'Unable to connect to live backend authentication service.';
           setAuthError(msg);
           setIsAuthenticating(false);
+          if (msg.includes('PENDING_VERIFICATION')) {
+            return {
+              success: false,
+              error: msg,
+              isPending: true,
+              registration: {
+                institutionCode: (institutionCode || '').trim(),
+                email: (email || '').trim(),
+                status: 'PENDING_VERIFICATION',
+              },
+            };
+          }
           return { success: false, error: msg };
         }
       }
@@ -258,6 +270,18 @@ export const AuthProvider = ({ children }) => {
           const msg = apiErr.response?.data?.message || apiErr.message || 'Officer authentication failed on live backend.';
           setAuthError(msg);
           setIsAuthenticating(false);
+          if (msg.includes('PENDING_APPROVAL')) {
+            return {
+              success: false,
+              error: msg,
+              isPending: true,
+              request: {
+                email: (email || '').trim(),
+                requestedRole: requestedRole || 'REGIONAL_OFFICER',
+                status: 'PENDING_APPROVAL',
+              },
+            };
+          }
           return { success: false, error: msg };
         }
       }

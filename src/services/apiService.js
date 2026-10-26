@@ -28,6 +28,15 @@ export const applicationsApi = {
   create: async (data) => {
     return apiClient.post('/applications', data);
   },
+  update: async (id, data) => {
+    return apiClient.put(`/applications/${id}`, data);
+  },
+  submitDraft: async (id) => {
+    return apiClient.post(`/applications/${id}/submit`);
+  },
+  deleteDraft: async (id) => {
+    return apiClient.delete(`/applications/${id}`);
+  },
   advanceStage: async (id, payload) => {
     return apiClient.post(`/applications/${id}/advance-stage`, payload);
   },
@@ -40,6 +49,24 @@ export const applicationsApi = {
   assignOfficer: async (id, payload) => {
     return apiClient.patch(`/applications/${id}/assign-officer`, payload);
   },
+  markEvc: async (id, payload) => {
+    return apiClient.post(`/applications/${id}/mark-evc`, payload);
+  },
+  submitReview: async (id, payload) => {
+    return apiClient.post(`/applications/${id}/reviews`, payload);
+  },
+  getReviews: async (id) => {
+    return apiClient.get(`/applications/${id}/reviews`);
+  },
+  createObservation: async (id, payload) => {
+    return apiClient.post(`/applications/${id}/observations`, payload);
+  },
+  verifyObservation: async (id, obsId, payload) => {
+    return apiClient.post(`/applications/${id}/observations/${obsId}/verify`, payload);
+  },
+  getDeficiencies: async (id) => {
+    return apiClient.get(`/applications/${id}/deficiencies`);
+  },
 };
 
 // Workflows & Pathways API
@@ -49,6 +76,18 @@ export const workflowsApi = {
   },
   getById: async (id) => {
     return apiClient.get(`/workflows/${id}`);
+  },
+  create: async (data) => {
+    return apiClient.post('/workflows', data);
+  },
+  update: async (id, data) => {
+    return apiClient.put(`/workflows/${id}`, data);
+  },
+  activate: async (id) => {
+    return apiClient.post(`/workflows/${id}/activate`);
+  },
+  deactivate: async (id) => {
+    return apiClient.post(`/workflows/${id}/deactivate`);
   },
   updateConfig: async (id, config) => {
     return apiClient.put(`/workflows/${id}/config`, config);
@@ -78,8 +117,32 @@ export const evcApi = {
   getAll: async (params = {}) => {
     return apiClient.get('/evc/schedules', { params });
   },
+  getById: async (id) => {
+    return apiClient.get(`/evc/schedules/${id}`);
+  },
+  getByApplicationId: async (applicationId) => {
+    return apiClient.get(`/evc/schedules/application/${applicationId}`);
+  },
+  createVisit: async (payload) => {
+    return apiClient.post('/evc/schedules', payload);
+  },
+  rescheduleVisit: async (id, payload) => {
+    return apiClient.post(`/evc/schedules/${id}/reschedule`, payload);
+  },
+  cancelVisit: async (id, payload) => {
+    return apiClient.post(`/evc/schedules/${id}/cancel`, payload);
+  },
+  assignCommitteeMembers: async (id, payload) => {
+    return apiClient.post(`/evc/schedules/${id}/assign-committee`, payload);
+  },
   schedule: async (id, payload) => {
     return apiClient.post(`/evc/schedules/${id}/assign`, payload);
+  },
+  submitReport: async (id, payload) => {
+    return apiClient.post(`/evc/schedules/${id}/report`, payload);
+  },
+  reviewReport: async (id, payload) => {
+    return apiClient.post(`/evc/schedules/${id}/review-report`, payload);
   },
   complete: async (id, payload) => {
     return apiClient.post(`/evc/schedules/${id}/complete`, payload);
@@ -164,5 +227,16 @@ export const adminApi = {
   },
   rejectOfficerRequest: async (id, payload = {}) => {
     return apiClient.post(`/admin/officer-requests/${id}/reject`, payload);
+  },
+  // Institution Verification Management
+  getInstitutions: async (status) => {
+    const params = status ? { status } : {};
+    return apiClient.get('/admin/institutions', { params });
+  },
+  verifyInstitution: async (code) => {
+    return apiClient.post(`/admin/institutions/${code}/verify`);
+  },
+  rejectInstitution: async (code, payload = {}) => {
+    return apiClient.post(`/admin/institutions/${code}/reject`, payload);
   },
 };

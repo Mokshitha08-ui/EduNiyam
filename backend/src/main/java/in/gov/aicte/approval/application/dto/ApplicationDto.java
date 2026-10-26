@@ -21,6 +21,14 @@ public class ApplicationDto {
     private String priority;
     private String assignedOfficer;
     private String officerRole;
+    private String assignedOfficerId;
+    private java.time.LocalDateTime assignedAt;
+    private String assignmentReason;
+    private Long version;
+    private Boolean requiresEvc = false;
+    private String evcReason;
+    private String evcMarkedBy;
+    private java.time.LocalDateTime evcMarkedAt;
     private LocalDate submissionDate;
     private LocalDate stageStartDate;
     private LocalDate nextDeadline;
@@ -165,6 +173,38 @@ public class ApplicationDto {
         this.officerRole = officerRole;
     }
 
+    public String getAssignedOfficerId() {
+        return this.assignedOfficerId;
+    }
+
+    public void setAssignedOfficerId(String assignedOfficerId) {
+        this.assignedOfficerId = assignedOfficerId;
+    }
+
+    public java.time.LocalDateTime getAssignedAt() {
+        return this.assignedAt;
+    }
+
+    public void setAssignedAt(java.time.LocalDateTime assignedAt) {
+        this.assignedAt = assignedAt;
+    }
+
+    public String getAssignmentReason() {
+        return this.assignmentReason;
+    }
+
+    public void setAssignmentReason(String assignmentReason) {
+        this.assignmentReason = assignmentReason;
+    }
+
+    public Long getVersion() {
+        return this.version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
+    }
+
     public LocalDate getSubmissionDate() {
         return this.submissionDate;
     }
@@ -245,6 +285,38 @@ public class ApplicationDto {
         this.requestedIntake = requestedIntake;
     }
 
+    public Boolean getRequiresEvc() {
+        return this.requiresEvc != null && this.requiresEvc;
+    }
+
+    public void setRequiresEvc(Boolean requiresEvc) {
+        this.requiresEvc = requiresEvc;
+    }
+
+    public String getEvcReason() {
+        return this.evcReason;
+    }
+
+    public void setEvcReason(String evcReason) {
+        this.evcReason = evcReason;
+    }
+
+    public String getEvcMarkedBy() {
+        return this.evcMarkedBy;
+    }
+
+    public void setEvcMarkedBy(String evcMarkedBy) {
+        this.evcMarkedBy = evcMarkedBy;
+    }
+
+    public java.time.LocalDateTime getEvcMarkedAt() {
+        return this.evcMarkedAt;
+    }
+
+    public void setEvcMarkedAt(java.time.LocalDateTime evcMarkedAt) {
+        this.evcMarkedAt = evcMarkedAt;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -263,6 +335,14 @@ public class ApplicationDto {
         private String priority;
         private String assignedOfficer;
         private String officerRole;
+        private String assignedOfficerId;
+        private java.time.LocalDateTime assignedAt;
+        private String assignmentReason;
+        private Long version;
+        private Boolean requiresEvc = false;
+        private String evcReason;
+        private String evcMarkedBy;
+        private java.time.LocalDateTime evcMarkedAt;
         private LocalDate submissionDate;
         private LocalDate stageStartDate;
         private LocalDate nextDeadline;
@@ -341,6 +421,26 @@ public class ApplicationDto {
             return this;
         }
 
+        public Builder assignedOfficerId(String assignedOfficerId) {
+            this.assignedOfficerId = assignedOfficerId;
+            return this;
+        }
+
+        public Builder assignedAt(java.time.LocalDateTime assignedAt) {
+            this.assignedAt = assignedAt;
+            return this;
+        }
+
+        public Builder assignmentReason(String assignmentReason) {
+            this.assignmentReason = assignmentReason;
+            return this;
+        }
+
+        public Builder version(Long version) {
+            this.version = version;
+            return this;
+        }
+
         public Builder submissionDate(LocalDate submissionDate) {
             this.submissionDate = submissionDate;
             return this;
@@ -391,8 +491,37 @@ public class ApplicationDto {
             return this;
         }
 
+        public Builder requiresEvc(Boolean requiresEvc) {
+            this.requiresEvc = requiresEvc;
+            return this;
+        }
+
+        public Builder evcReason(String evcReason) {
+            this.evcReason = evcReason;
+            return this;
+        }
+
+        public Builder evcMarkedBy(String evcMarkedBy) {
+            this.evcMarkedBy = evcMarkedBy;
+            return this;
+        }
+
+        public Builder evcMarkedAt(java.time.LocalDateTime evcMarkedAt) {
+            this.evcMarkedAt = evcMarkedAt;
+            return this;
+        }
+
         public ApplicationDto build() {
-            return new ApplicationDto(this.id, this.institutionName, this.institutionCode, this.applicationType, this.programme, this.region, this.state, this.workflowId, this.currentStage, this.status, this.priority, this.assignedOfficer, this.officerRole, this.submissionDate, this.stageStartDate, this.nextDeadline, this.deficiencyCount, this.missingDocCount, this.deficiencyReason, this.observations, this.documents, this.timeline, this.requestedIntake);
+            ApplicationDto dto = new ApplicationDto(this.id, this.institutionName, this.institutionCode, this.applicationType, this.programme, this.region, this.state, this.workflowId, this.currentStage, this.status, this.priority, this.assignedOfficer, this.officerRole, this.submissionDate, this.stageStartDate, this.nextDeadline, this.deficiencyCount, this.missingDocCount, this.deficiencyReason, this.observations, this.documents, this.timeline, this.requestedIntake);
+            dto.setAssignedOfficerId(this.assignedOfficerId);
+            dto.setAssignedAt(this.assignedAt);
+            dto.setAssignmentReason(this.assignmentReason);
+            dto.setVersion(this.version);
+            dto.setRequiresEvc(this.requiresEvc);
+            dto.setEvcReason(this.evcReason);
+            dto.setEvcMarkedBy(this.evcMarkedBy);
+            dto.setEvcMarkedAt(this.evcMarkedAt);
+            return dto;
         }
     }
 
@@ -427,6 +556,14 @@ public class ApplicationDto {
                 .priority(entity.getPriority())
                 .assignedOfficer(entity.getAssignedOfficer())
                 .officerRole(entity.getOfficerRole())
+                .assignedOfficerId(entity.getAssignedOfficerId())
+                .assignedAt(entity.getAssignedAt())
+                .assignmentReason(entity.getAssignmentReason())
+                .version(entity.getVersion())
+                .requiresEvc(entity.getRequiresEvc())
+                .evcReason(entity.getEvcReason())
+                .evcMarkedBy(entity.getEvcMarkedBy())
+                .evcMarkedAt(entity.getEvcMarkedAt())
                 .submissionDate(entity.getSubmissionDate())
                 .stageStartDate(entity.getStageStartDate())
                 .nextDeadline(entity.getNextDeadline())

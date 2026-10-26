@@ -451,6 +451,86 @@ public class AuthService {
     }
 
     @Transactional(readOnly = true)
+    public List<Institution> getInstitutions(String status) {
+        List<Institution> all = institutionRepository.findAll();
+        if (status != null && !status.isBlank()) {
+            String filter = status.trim().toUpperCase();
+            return all.stream()
+                    .filter(i -> filter.equalsIgnoreCase(i.getStatus()))
+                    .collect(Collectors.toList());
+        }
+        return all;
+    }
+
+    @Transactional
+    public Institution verifyInstitution(String code, String adminUsername) {
+        Institution inst = institutionRepository.findByCode(code)
+                .orElseThrow(() -> new ResourceNotFoundException("Institution", "code", code));
+
+        String prevState = inst.getStatus();
+        inst.setStatus("VERIFIED");
+        institutionRepository.save(inst);
+
+        List<User> repUsers = userRepository.findByInstitutionCode(code);
+        for (User rep : repUsers) {
+            if ("PENDING_VERIFICATION".equalsIgnoreCase(rep.getStatus())) {
+                rep.setStatus("ACTIVE");
+                userRepository.save(rep);
+            }
+        }
+
+        AuditLog auditLog = AuditLog.builder()
+                .id("AUD-" + (100000 + new Random().nextInt(900000)))
+                .timestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
+                .userName(adminUsername)
+                .role("ADMIN")
+                .entityId(code)
+                .action("INSTITUTION_VERIFIED")
+                .previousState(prevState)
+                .newState("VERIFIED")
+                .reason("Institution verified by " + adminUsername + "; associated representative accounts activated.")
+                .ipAddress("127.0.0.1")
+                .build();
+        auditLogRepository.save(auditLog);
+
+        return inst;
+    }
+
+    @Transactional
+    public Institution rejectInstitution(String code, String reason, String adminUsername) {
+        Institution inst = institutionRepository.findByCode(code)
+                .orElseThrow(() -> new ResourceNotFoundException("Institution", "code", code));
+
+        String prevState = inst.getStatus();
+        inst.setStatus("REJECTED");
+        institutionRepository.save(inst);
+
+        List<User> repUsers = userRepository.findByInstitutionCode(code);
+        for (User rep : repUsers) {
+            if ("PENDING_VERIFICATION".equalsIgnoreCase(rep.getStatus())) {
+                rep.setStatus("REJECTED");
+                userRepository.save(rep);
+            }
+        }
+
+        AuditLog auditLog = AuditLog.builder()
+                .id("AUD-" + (100000 + new Random().nextInt(900000)))
+                .timestamp(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
+                .userName(adminUsername)
+                .role("ADMIN")
+                .entityId(code)
+                .action("INSTITUTION_REJECTED")
+                .previousState(prevState)
+                .newState("REJECTED")
+                .reason("Institution registration rejected by " + adminUsername + ". Reason: " + (reason != null ? reason : "Not specified"))
+                .ipAddress("127.0.0.1")
+                .build();
+        auditLogRepository.save(auditLog);
+
+        return inst;
+    }
+
+    @Transactional(readOnly = true)
     public UserDto getCurrentUser(String email) {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));

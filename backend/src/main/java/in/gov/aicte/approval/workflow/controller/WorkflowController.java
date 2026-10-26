@@ -1,11 +1,17 @@
 package in.gov.aicte.approval.workflow.controller;
 
 import in.gov.aicte.approval.common.dto.PageResponse;
+import in.gov.aicte.approval.security.UserPrincipal;
+import in.gov.aicte.approval.workflow.dto.WorkflowCreateRequest;
 import in.gov.aicte.approval.workflow.dto.WorkflowDto;
+import in.gov.aicte.approval.workflow.dto.WorkflowUpdateRequest;
 import in.gov.aicte.approval.workflow.service.WorkflowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,7 +28,6 @@ public class WorkflowController {
         this.workflowService = workflowService;
     }
 
-
     @GetMapping
     @Operation(summary = "Get all configured workflow approval pathways")
     public ResponseEntity<PageResponse<WorkflowDto>> getAllWorkflows() {
@@ -36,7 +41,49 @@ public class WorkflowController {
         return ResponseEntity.ok(workflowService.getWorkflowById(id));
     }
 
+    @PostMapping
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'ADMIN')")
+    @Operation(summary = "Create a new configurable approval workflow template")
+    public ResponseEntity<WorkflowDto> createWorkflow(
+            @RequestBody WorkflowCreateRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        String username = principal != null ? principal.getName() : "System Administrator";
+        return ResponseEntity.status(HttpStatus.CREATED).body(workflowService.createWorkflow(request, username));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'ADMIN')")
+    @Operation(summary = "Update an existing workflow template and stage definitions")
+    public ResponseEntity<WorkflowDto> updateWorkflow(
+            @PathVariable String id,
+            @RequestBody WorkflowUpdateRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        String username = principal != null ? principal.getName() : "System Administrator";
+        return ResponseEntity.ok(workflowService.updateWorkflow(id, request, username));
+    }
+
+    @PostMapping("/{id}/activate")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'ADMIN')")
+    @Operation(summary = "Validate and activate an approval workflow template")
+    public ResponseEntity<WorkflowDto> activateWorkflow(
+            @PathVariable String id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        String username = principal != null ? principal.getName() : "System Administrator";
+        return ResponseEntity.ok(workflowService.activateWorkflow(id, username));
+    }
+
+    @PostMapping("/{id}/deactivate")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'ADMIN')")
+    @Operation(summary = "Deactivate an approval workflow template")
+    public ResponseEntity<WorkflowDto> deactivateWorkflow(
+            @PathVariable String id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        String username = principal != null ? principal.getName() : "System Administrator";
+        return ResponseEntity.ok(workflowService.deactivateWorkflow(id, username));
+    }
+
     @PutMapping("/{id}/config")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'ADMIN')")
     @Operation(summary = "Update SLA and pathway configuration for a workflow")
     public ResponseEntity<WorkflowDto> updateConfig(@PathVariable String id, @RequestBody Map<String, Object> config) {
         return ResponseEntity.ok(workflowService.updateConfig(id, config));

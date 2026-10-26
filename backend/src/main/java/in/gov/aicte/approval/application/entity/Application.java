@@ -53,6 +53,19 @@ public class Application {
     @Column(name = "officer_role", length = 64)
     private String officerRole;
 
+    @Column(name = "assigned_officer_id", length = 64)
+    private String assignedOfficerId;
+
+    @Column(name = "assigned_at")
+    private LocalDateTime assignedAt;
+
+    @Column(name = "assignment_reason", columnDefinition = "TEXT")
+    private String assignmentReason;
+
+    @Version
+    @Column(name = "version")
+    private Long version = 0L;
+
     @Column(name = "submission_date")
     private LocalDate submissionDate;
 
@@ -70,6 +83,18 @@ public class Application {
 
     @Column(name = "deficiency_reason", columnDefinition = "TEXT")
     private String deficiencyReason;
+
+    @Column(name = "requires_evc")
+    private Boolean requiresEvc = false;
+
+    @Column(name = "evc_reason")
+    private String evcReason;
+
+    @Column(name = "evc_marked_by", length = 128)
+    private String evcMarkedBy;
+
+    @Column(name = "evc_marked_at")
+    private LocalDateTime evcMarkedAt;
 
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Observation> observations = new ArrayList<>();
@@ -234,6 +259,38 @@ public class Application {
         this.officerRole = officerRole;
     }
 
+    public String getAssignedOfficerId() {
+        return this.assignedOfficerId;
+    }
+
+    public void setAssignedOfficerId(String assignedOfficerId) {
+        this.assignedOfficerId = assignedOfficerId;
+    }
+
+    public LocalDateTime getAssignedAt() {
+        return this.assignedAt;
+    }
+
+    public void setAssignedAt(LocalDateTime assignedAt) {
+        this.assignedAt = assignedAt;
+    }
+
+    public String getAssignmentReason() {
+        return this.assignmentReason;
+    }
+
+    public void setAssignmentReason(String assignmentReason) {
+        this.assignmentReason = assignmentReason;
+    }
+
+    public Long getVersion() {
+        return this.version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
+    }
+
     public LocalDate getSubmissionDate() {
         return this.submissionDate;
     }
@@ -330,6 +387,38 @@ public class Application {
         this.updatedAt = updatedAt;
     }
 
+    public Boolean getRequiresEvc() {
+        return this.requiresEvc != null && this.requiresEvc;
+    }
+
+    public void setRequiresEvc(Boolean requiresEvc) {
+        this.requiresEvc = requiresEvc;
+    }
+
+    public String getEvcReason() {
+        return this.evcReason;
+    }
+
+    public void setEvcReason(String evcReason) {
+        this.evcReason = evcReason;
+    }
+
+    public String getEvcMarkedBy() {
+        return this.evcMarkedBy;
+    }
+
+    public void setEvcMarkedBy(String evcMarkedBy) {
+        this.evcMarkedBy = evcMarkedBy;
+    }
+
+    public LocalDateTime getEvcMarkedAt() {
+        return this.evcMarkedAt;
+    }
+
+    public void setEvcMarkedAt(LocalDateTime evcMarkedAt) {
+        this.evcMarkedAt = evcMarkedAt;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -348,6 +437,14 @@ public class Application {
         private String priority = "NORMAL";
         private String assignedOfficer;
         private String officerRole;
+        private String assignedOfficerId;
+        private LocalDateTime assignedAt;
+        private String assignmentReason;
+        private Long version = 0L;
+        private Boolean requiresEvc = false;
+        private String evcReason;
+        private String evcMarkedBy;
+        private LocalDateTime evcMarkedAt;
         private LocalDate submissionDate;
         private LocalDate stageStartDate;
         private LocalDate nextDeadline;
@@ -428,6 +525,26 @@ public class Application {
             return this;
         }
 
+        public Builder assignedOfficerId(String assignedOfficerId) {
+            this.assignedOfficerId = assignedOfficerId;
+            return this;
+        }
+
+        public Builder assignedAt(LocalDateTime assignedAt) {
+            this.assignedAt = assignedAt;
+            return this;
+        }
+
+        public Builder assignmentReason(String assignmentReason) {
+            this.assignmentReason = assignmentReason;
+            return this;
+        }
+
+        public Builder version(Long version) {
+            this.version = version;
+            return this;
+        }
+
         public Builder submissionDate(LocalDate submissionDate) {
             this.submissionDate = submissionDate;
             return this;
@@ -488,12 +605,41 @@ public class Application {
             return this;
         }
 
+        public Builder requiresEvc(Boolean requiresEvc) {
+            this.requiresEvc = requiresEvc;
+            return this;
+        }
+
+        public Builder evcReason(String evcReason) {
+            this.evcReason = evcReason;
+            return this;
+        }
+
+        public Builder evcMarkedBy(String evcMarkedBy) {
+            this.evcMarkedBy = evcMarkedBy;
+            return this;
+        }
+
+        public Builder evcMarkedAt(LocalDateTime evcMarkedAt) {
+            this.evcMarkedAt = evcMarkedAt;
+            return this;
+        }
+
         public Application build() {
-            return new Application(id, institutionName, institutionCode, applicationType,
+            Application app = new Application(id, institutionName, institutionCode, applicationType,
                     programme, region, state, workflowId, currentStage, status, priority,
                     assignedOfficer, officerRole, submissionDate, stageStartDate, nextDeadline,
                     deficiencyCount, missingDocCount, deficiencyReason, observations, documents,
                     timeline, requestedIntake, createdAt, updatedAt);
+            app.setAssignedOfficerId(this.assignedOfficerId);
+            app.setAssignedAt(this.assignedAt);
+            app.setAssignmentReason(this.assignmentReason);
+            app.setVersion(this.version != null ? this.version : 0L);
+            app.setRequiresEvc(this.requiresEvc);
+            app.setEvcReason(this.evcReason);
+            app.setEvcMarkedBy(this.evcMarkedBy);
+            app.setEvcMarkedAt(this.evcMarkedAt);
+            return app;
         }
     }
 }

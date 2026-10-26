@@ -20,17 +20,27 @@ public class EvcMember {
     private String affiliation;
     @Column(name = "phone", length = 64)
     private String phone;
+    @Column(name = "user_id", length = 64)
+    private String userId;
+    @Column(name = "assigned_by", length = 64)
+    private String assignedBy;
+    @Column(name = "assigned_at")
+    private java.time.LocalDateTime assignedAt;
 
     public EvcMember() {
     }
 
-    public EvcMember(Long id, EvcSchedule schedule, String name, String role, String affiliation, String phone) {
+    public EvcMember(Long id, EvcSchedule schedule, String name, String role, String affiliation, String phone,
+                     String userId, String assignedBy, java.time.LocalDateTime assignedAt) {
         this.id = id;
         this.schedule = schedule;
         this.name = name;
         this.role = role;
         this.affiliation = affiliation;
         this.phone = phone;
+        this.userId = userId;
+        this.assignedBy = assignedBy;
+        this.assignedAt = assignedAt;
     }
 
     public Long getId() {
@@ -81,6 +91,30 @@ public class EvcMember {
         this.phone = phone;
     }
 
+    public String getUserId() {
+        return this.userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getAssignedBy() {
+        return this.assignedBy;
+    }
+
+    public void setAssignedBy(String assignedBy) {
+        this.assignedBy = assignedBy;
+    }
+
+    public java.time.LocalDateTime getAssignedAt() {
+        return this.assignedAt;
+    }
+
+    public void setAssignedAt(java.time.LocalDateTime assignedAt) {
+        this.assignedAt = assignedAt;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -92,6 +126,9 @@ public class EvcMember {
         private String role;
         private String affiliation;
         private String phone;
+        private String userId;
+        private String assignedBy;
+        private java.time.LocalDateTime assignedAt;
 
         public Builder() {}
 
@@ -125,8 +162,24 @@ public class EvcMember {
             return this;
         }
 
+        public Builder userId(String userId) {
+            this.userId = userId;
+            return this;
+        }
+
+        public Builder assignedBy(String assignedBy) {
+            this.assignedBy = assignedBy;
+            return this;
+        }
+
+        public Builder assignedAt(java.time.LocalDateTime assignedAt) {
+            this.assignedAt = assignedAt;
+            return this;
+        }
+
         public EvcMember build() {
-            return new EvcMember(this.id, this.schedule, this.name, this.role, this.affiliation, this.phone);
+            return new EvcMember(this.id, this.schedule, this.name, this.role, this.affiliation, this.phone,
+                    this.userId, this.assignedBy, this.assignedAt);
         }
     }
 

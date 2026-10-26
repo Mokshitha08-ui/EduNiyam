@@ -58,6 +58,45 @@ public class EvcSchedule {
     @Column(name = "geo_tagged_photos_count")
     private int geoTaggedPhotosCount = 0;
 
+    @Column(name = "visit_time", length = 32)
+    private String visitTime;
+
+    @Column(name = "location", length = 255)
+    private String location;
+
+    @Column(name = "purpose", length = 255)
+    private String purpose;
+
+    @Column(name = "instructions", columnDefinition = "TEXT")
+    private String instructions;
+
+    @Column(name = "reschedule_reason", columnDefinition = "TEXT")
+    private String rescheduleReason;
+
+    @Column(name = "cancellation_reason", columnDefinition = "TEXT")
+    private String cancellationReason;
+
+    @Column(name = "recommendation", length = 64)
+    private String recommendation;
+
+    @Column(name = "findings_json", columnDefinition = "TEXT")
+    private String findingsJson;
+
+    @Column(name = "submitted_by", length = 64)
+    private String submittedBy;
+
+    @Column(name = "submitted_at")
+    private LocalDateTime submittedAt;
+
+    @Column(name = "report_reviewed_by", length = 64)
+    private String reportReviewedBy;
+
+    @Column(name = "report_reviewed_at")
+    private LocalDateTime reportReviewedAt;
+
+    @Column(name = "report_review_notes", columnDefinition = "TEXT")
+    private String reportReviewNotes;
+
     @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<EvcMember> committeeMembers = new ArrayList<>();
 
@@ -76,7 +115,11 @@ public class EvcSchedule {
                        String visitType, String status, LocalDate schedulingDeadline,
                        LocalDate proposedDate, String mode, String conflictStatus,
                        LocalDate completionDate, String reportStatus, String observations,
-                       int geoTaggedPhotosCount, List<EvcMember> committeeMembers,
+                       int geoTaggedPhotosCount, String visitTime, String location, String purpose,
+                       String instructions, String rescheduleReason, String cancellationReason,
+                       String recommendation, String findingsJson, String submittedBy,
+                       LocalDateTime submittedAt, String reportReviewedBy, LocalDateTime reportReviewedAt,
+                       String reportReviewNotes, List<EvcMember> committeeMembers,
                        LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.application = application;
@@ -92,6 +135,19 @@ public class EvcSchedule {
         this.reportStatus = reportStatus;
         this.observations = observations;
         this.geoTaggedPhotosCount = geoTaggedPhotosCount;
+        this.visitTime = visitTime;
+        this.location = location;
+        this.purpose = purpose;
+        this.instructions = instructions;
+        this.rescheduleReason = rescheduleReason;
+        this.cancellationReason = cancellationReason;
+        this.recommendation = recommendation;
+        this.findingsJson = findingsJson;
+        this.submittedBy = submittedBy;
+        this.submittedAt = submittedAt;
+        this.reportReviewedBy = reportReviewedBy;
+        this.reportReviewedAt = reportReviewedAt;
+        this.reportReviewNotes = reportReviewNotes;
         this.committeeMembers = committeeMembers != null ? committeeMembers : new ArrayList<>();
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -209,6 +265,110 @@ public class EvcSchedule {
         this.geoTaggedPhotosCount = geoTaggedPhotosCount;
     }
 
+    public String getVisitTime() {
+        return this.visitTime;
+    }
+
+    public void setVisitTime(String visitTime) {
+        this.visitTime = visitTime;
+    }
+
+    public String getLocation() {
+        return this.location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getPurpose() {
+        return this.purpose;
+    }
+
+    public void setPurpose(String purpose) {
+        this.purpose = purpose;
+    }
+
+    public String getInstructions() {
+        return this.instructions;
+    }
+
+    public void setInstructions(String instructions) {
+        this.instructions = instructions;
+    }
+
+    public String getRescheduleReason() {
+        return this.rescheduleReason;
+    }
+
+    public void setRescheduleReason(String rescheduleReason) {
+        this.rescheduleReason = rescheduleReason;
+    }
+
+    public String getCancellationReason() {
+        return this.cancellationReason;
+    }
+
+    public void setCancellationReason(String cancellationReason) {
+        this.cancellationReason = cancellationReason;
+    }
+
+    public String getRecommendation() {
+        return this.recommendation;
+    }
+
+    public void setRecommendation(String recommendation) {
+        this.recommendation = recommendation;
+    }
+
+    public String getFindingsJson() {
+        return this.findingsJson;
+    }
+
+    public void setFindingsJson(String findingsJson) {
+        this.findingsJson = findingsJson;
+    }
+
+    public String getSubmittedBy() {
+        return this.submittedBy;
+    }
+
+    public void setSubmittedBy(String submittedBy) {
+        this.submittedBy = submittedBy;
+    }
+
+    public LocalDateTime getSubmittedAt() {
+        return this.submittedAt;
+    }
+
+    public void setSubmittedAt(LocalDateTime submittedAt) {
+        this.submittedAt = submittedAt;
+    }
+
+    public String getReportReviewedBy() {
+        return this.reportReviewedBy;
+    }
+
+    public void setReportReviewedBy(String reportReviewedBy) {
+        this.reportReviewedBy = reportReviewedBy;
+    }
+
+    public LocalDateTime getReportReviewedAt() {
+        return this.reportReviewedAt;
+    }
+
+    public void setReportReviewedAt(LocalDateTime reportReviewedAt) {
+        this.reportReviewedAt = reportReviewedAt;
+    }
+
+    public String getReportReviewNotes() {
+        return this.reportReviewNotes;
+    }
+
+    public void setReportReviewNotes(String reportReviewNotes) {
+        this.reportReviewNotes = reportReviewNotes;
+    }
+
     public List<EvcMember> getCommitteeMembers() {
         return this.committeeMembers;
     }
@@ -252,6 +412,19 @@ public class EvcSchedule {
         private String reportStatus;
         private String observations;
         private int geoTaggedPhotosCount = 0;
+        private String visitTime;
+        private String location;
+        private String purpose;
+        private String instructions;
+        private String rescheduleReason;
+        private String cancellationReason;
+        private String recommendation;
+        private String findingsJson;
+        private String submittedBy;
+        private LocalDateTime submittedAt;
+        private String reportReviewedBy;
+        private LocalDateTime reportReviewedAt;
+        private String reportReviewNotes;
         private List<EvcMember> committeeMembers = new ArrayList<>();
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
@@ -328,6 +501,71 @@ public class EvcSchedule {
             return this;
         }
 
+        public Builder visitTime(String visitTime) {
+            this.visitTime = visitTime;
+            return this;
+        }
+
+        public Builder location(String location) {
+            this.location = location;
+            return this;
+        }
+
+        public Builder purpose(String purpose) {
+            this.purpose = purpose;
+            return this;
+        }
+
+        public Builder instructions(String instructions) {
+            this.instructions = instructions;
+            return this;
+        }
+
+        public Builder rescheduleReason(String rescheduleReason) {
+            this.rescheduleReason = rescheduleReason;
+            return this;
+        }
+
+        public Builder cancellationReason(String cancellationReason) {
+            this.cancellationReason = cancellationReason;
+            return this;
+        }
+
+        public Builder recommendation(String recommendation) {
+            this.recommendation = recommendation;
+            return this;
+        }
+
+        public Builder findingsJson(String findingsJson) {
+            this.findingsJson = findingsJson;
+            return this;
+        }
+
+        public Builder submittedBy(String submittedBy) {
+            this.submittedBy = submittedBy;
+            return this;
+        }
+
+        public Builder submittedAt(LocalDateTime submittedAt) {
+            this.submittedAt = submittedAt;
+            return this;
+        }
+
+        public Builder reportReviewedBy(String reportReviewedBy) {
+            this.reportReviewedBy = reportReviewedBy;
+            return this;
+        }
+
+        public Builder reportReviewedAt(LocalDateTime reportReviewedAt) {
+            this.reportReviewedAt = reportReviewedAt;
+            return this;
+        }
+
+        public Builder reportReviewNotes(String reportReviewNotes) {
+            this.reportReviewNotes = reportReviewNotes;
+            return this;
+        }
+
         public Builder committeeMembers(List<EvcMember> committeeMembers) {
             this.committeeMembers = committeeMembers;
             return this;
@@ -346,7 +584,10 @@ public class EvcSchedule {
         public EvcSchedule build() {
             return new EvcSchedule(id, application, institutionName, region, visitType, status,
                     schedulingDeadline, proposedDate, mode, conflictStatus, completionDate,
-                    reportStatus, observations, geoTaggedPhotosCount, committeeMembers, createdAt, updatedAt);
+                    reportStatus, observations, geoTaggedPhotosCount, visitTime, location, purpose,
+                    instructions, rescheduleReason, cancellationReason, recommendation, findingsJson,
+                    submittedBy, submittedAt, reportReviewedBy, reportReviewedAt, reportReviewNotes,
+                    committeeMembers, createdAt, updatedAt);
         }
     }
 }

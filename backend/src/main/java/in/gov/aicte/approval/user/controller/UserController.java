@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,12 +33,14 @@ public class UserController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'ADMIN')")
     @Operation(summary = "Create a new user account")
     public ResponseEntity<UserDto> createUser(@RequestBody UserDto userDto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(userDto));
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('SYSTEM_ADMIN', 'ADMIN')")
     @Operation(summary = "Update user account status (ACTIVE/INACTIVE)")
     public ResponseEntity<UserDto> updateStatus(@PathVariable String id, @RequestBody Map<String, String> payload) {
         String status = payload.getOrDefault("status", "ACTIVE");

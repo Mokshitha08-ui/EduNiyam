@@ -28,6 +28,7 @@ export const WorkflowMonitor = () => {
   const [viewMode, setViewMode] = useState('kanban'); // 'kanban' | 'table'
   const [selectedWorkflow, setSelectedWorkflow] = useState('ALL');
   const [selectedRegion, setSelectedRegion] = useState('ALL');
+  const [showUnassignedOnly, setShowUnassignedOnly] = useState(false);
 
   // Stages to show on Kanban
   const kanbanStages = [
@@ -42,9 +43,10 @@ export const WorkflowMonitor = () => {
     return applications.filter(app => {
       const matchWf = selectedWorkflow === 'ALL' || app.workflowId === selectedWorkflow;
       const matchReg = selectedRegion === 'ALL' || app.region === selectedRegion;
-      return matchWf && matchReg;
+      const matchUnassigned = !showUnassignedOnly || (!app.assignedOfficerId && (!app.assignedOfficer || app.assignedOfficer.includes('Unassigned')));
+      return matchWf && matchReg && matchUnassigned;
     });
-  }, [applications, selectedWorkflow, selectedRegion]);
+  }, [applications, selectedWorkflow, selectedRegion, showUnassignedOnly]);
 
   // Bottleneck detection
   const stageStats = useMemo(() => {
@@ -128,6 +130,19 @@ export const WorkflowMonitor = () => {
             <option value="Eastern">Eastern</option>
             <option value="Central">Central</option>
           </select>
+
+          <button
+            type="button"
+            onClick={() => setShowUnassignedOnly(!showUnassignedOnly)}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+              showUnassignedOnly
+                ? 'bg-amber-600 text-white shadow-xs'
+                : 'bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            Unassigned Queue
+          </button>
         </div>
 
         {/* Bottleneck Summary */}

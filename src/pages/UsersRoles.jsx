@@ -33,7 +33,7 @@ export const UsersRoles = () => {
   const { users, dataMode, addAuditLog } = useAppData();
   const { currentUser } = useAuth();
 
-  const [activeTab, setActiveTab] = useState('accounts'); // 'accounts' | 'requests'
+  const [activeTab, setActiveTab] = useState('accounts'); // 'accounts' | 'requests' | 'institutions'
   const [userList, setUserList] = useState(users);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState('ALL');
@@ -42,6 +42,10 @@ export const UsersRoles = () => {
   const [officerRequests, setOfficerRequests] = useState([]);
   const [isLoadingRequests, setIsLoadingRequests] = useState(false);
   const [actionMessage, setActionMessage] = useState(null);
+
+  // Institution Verification state
+  const [institutions, setInstitutions] = useState([]);
+  const [isLoadingInstitutions, setIsLoadingInstitutions] = useState(false);
 
   // Add User Modal
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
@@ -77,6 +81,97 @@ export const UsersRoles = () => {
   useEffect(() => {
     loadOfficerRequests();
   }, [dataMode]);
+
+  // Load Institutions for Verification
+  const loadInstitutions = async () => {
+    setIsLoadingInstitutions(true);
+    try {
+      if (dataMode === 'live') {
+        const res = await adminApi.getInstitutions();
+        if (res.data) {
+          setInstitutions(res.data);
+        }
+      } else {
+        const stored = JSON.parse(localStorage.getItem('aicte_demo_registered_institutions') || '[]');
+        setInstitutions(stored);
+      }
+    } catch (err) {
+      console.warn('Failed to load institutions', err);
+    } finally {
+      setIsLoadingInstitutions(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'institutions') {
+      loadInstitutions();
+    }
+  }, [activeTab, dataMode]);
+
+  // Handle Verify Institution
+  const handleVerifyInstitution = async (institution) => {
+    if (!window.confirm(`Verify institution "${institution.name}" (${institution.code})? This will activate their representative accounts.`)) return;
+
+    try {
+      if (dataMode === 'live') {
+        await adminApi.verifyInstitution(institution.code);
+      } else {
+        const stored = JSON.parse(localStorage.getItem('aicte_demo_registered_institutions') || '[]');
+        const updated = stored.map((i) =>
+          i.code === institution.code ? { ...i, status: 'VERIFIED' } : i
+        );
+        localStorage.setItem('aicte_demo_registered_institutions', JSON.stringify(updated));
+      }
+
+      addAuditLog({
+        entityId: institution.code,
+        action: 'INSTITUTION_VERIFIED',
+        previousState: institution.status || 'PENDING_VERIFICATION',
+        newState: 'VERIFIED',
+        reason: `Institution verified by ${currentUser?.name || 'Admin'}`,
+        user: currentUser,
+      });
+
+      setActionMessage(`Institution "${institution.name}" (${institution.code}) has been verified and activated.`);
+      loadInstitutions();
+      setTimeout(() => setActionMessage(null), 5000);
+    } catch (err) {
+      alert('Error verifying institution: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  // Handle Reject Institution
+  const handleRejectInstitution = async (institution) => {
+    const reason = prompt(`Enter rejection reason for "${institution.name}":`, 'Incomplete or unverifiable documentation');
+    if (!reason) return;
+
+    try {
+      if (dataMode === 'live') {
+        await adminApi.rejectInstitution(institution.code, { reason });
+      } else {
+        const stored = JSON.parse(localStorage.getItem('aicte_demo_registered_institutions') || '[]');
+        const updated = stored.map((i) =>
+          i.code === institution.code ? { ...i, status: 'REJECTED', rejectionReason: reason } : i
+        );
+        localStorage.setItem('aicte_demo_registered_institutions', JSON.stringify(updated));
+      }
+
+      addAuditLog({
+        entityId: institution.code,
+        action: 'INSTITUTION_REJECTED',
+        previousState: institution.status || 'PENDING_VERIFICATION',
+        newState: 'REJECTED',
+        reason: `Institution registration rejected. Reason: ${reason}`,
+        user: currentUser,
+      });
+
+      setActionMessage(`Institution "${institution.name}" registration has been rejected.`);
+      loadInstitutions();
+      setTimeout(() => setActionMessage(null), 5000);
+    } catch (err) {
+      alert('Error rejecting institution: ' + (err.response?.data?.message || err.message));
+    }
+  };
 
   useEffect(() => {
     setUserList(users);
@@ -231,6 +326,7 @@ export const UsersRoles = () => {
   };
 
   const pendingRequestsCount = officerRequests.filter((r) => r.status === 'PENDING_APPROVAL').length;
+  const pendingInstitutionsCount = institutions.filter((i) => i.status === 'PENDING_VERIFICATION').length;
 
   return (
     <div className="space-y-6">
@@ -309,6 +405,31 @@ export const UsersRoles = () => {
           ) : (
             <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-mono">
               {officerRequests.length}
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('institutions');
+            loadInstitutions();
+          }}
+          className={`pb-3 px-3 text-xs sm:text-sm font-bold uppercase tracking-wider border-b-2 transition-colors flex items-center gap-2 ${
+            activeTab === 'institutions'
+              ? 'border-gov-800 text-gov-900'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <Building className="w-4 h-4" />
+          <span>Institution Verification</span>
+          {pendingInstitutionsCount > 0 ? (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold animate-pulse">
+              {pendingInstitutionsCount} Pending
+            </span>
+          ) : (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-mono">
+              {institutions.length}
             </span>
           )}
         </button>
@@ -507,6 +628,119 @@ export const UsersRoles = () => {
                         ) : (
                           <span className="text-[11px] text-slate-400 italic">
                             Reviewed by {req.reviewedBy || 'Admin'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: INSTITUTION VERIFICATION */}
+      {activeTab === 'institutions' && (
+        <div className="space-y-4">
+          <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-blue-900 flex items-start gap-3">
+            <Building className="w-5 h-5 text-gov-800 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-bold text-gov-950 uppercase tracking-wide">
+                Institution Registration Verification Desk
+              </h4>
+              <p className="mt-0.5 leading-relaxed">
+                Review newly registered institutional applications. Verify official documentation, AICTE recognition status, and institutional details before granting portal access. Approving an institution activates all associated representative accounts.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 shadow-card overflow-hidden">
+            {institutions.length === 0 ? (
+              <div className="p-12 text-center text-slate-500 text-xs">
+                <Building className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="font-semibold text-slate-700">No institution registrations found</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  When new institutions register through the portal, they will appear here for administrator verification.
+                </p>
+              </div>
+            ) : (
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                  <tr>
+                    <th className="p-3">Institution</th>
+                    <th className="p-3">Code / ID</th>
+                    <th className="p-3">Type & Region</th>
+                    <th className="p-3">Contact</th>
+                    <th className="p-3">Registered</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 text-right">Admin Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {institutions.map((inst) => (
+                    <tr key={inst.code} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="p-3">
+                        <div>
+                          <p className="font-bold text-slate-900">{inst.name}</p>
+                          <p className="text-[11px] text-slate-500 mt-0.5">{inst.address || `${inst.district || ''}, ${inst.state || ''}`}</p>
+                        </div>
+                      </td>
+                      <td className="p-3 font-mono font-bold text-gov-900">
+                        {inst.code}
+                      </td>
+                      <td className="p-3">
+                        <div className="text-slate-800 font-medium">{inst.institutionType || 'Engineering'}</div>
+                        <div className="text-[10px] text-slate-500">{inst.region || inst.state || 'N/A'}</div>
+                      </td>
+                      <td className="p-3">
+                        <div className="font-mono text-[11px] text-slate-600">{inst.contactEmail || 'N/A'}</div>
+                        <div className="text-[10px] text-slate-400">{inst.contactPhone || ''}</div>
+                      </td>
+                      <td className="p-3 font-mono text-slate-500">
+                        {inst.createdAt ? new Date(inst.createdAt).toLocaleDateString() : 'Recent'}
+                      </td>
+                      <td className="p-3">
+                        {inst.status === 'PENDING_VERIFICATION' && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                            <Clock className="w-3 h-3 text-amber-600" />
+                            PENDING
+                          </span>
+                        )}
+                        {inst.status === 'VERIFIED' && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            VERIFIED
+                          </span>
+                        )}
+                        {inst.status === 'REJECTED' && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-300">
+                            <XCircle className="w-3 h-3 text-rose-600" />
+                            REJECTED
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3 text-right">
+                        {inst.status === 'PENDING_VERIFICATION' ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleVerifyInstitution(inst)}
+                              className="px-2.5 py-1 text-xs font-bold rounded bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-sm"
+                            >
+                              Verify
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRejectInstitution(inst)}
+                              className="px-2.5 py-1 text-xs font-bold rounded border border-rose-300 text-rose-700 hover:bg-rose-50 transition-colors"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 italic">
+                            {inst.status === 'VERIFIED' ? 'Active' : inst.status}
                           </span>
                         )}
                       </td>

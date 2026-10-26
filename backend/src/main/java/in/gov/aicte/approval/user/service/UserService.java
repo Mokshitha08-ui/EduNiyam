@@ -1,7 +1,10 @@
 package in.gov.aicte.approval.user.service;
 
 import in.gov.aicte.approval.auth.dto.UserDto;
+import in.gov.aicte.approval.common.exception.BadRequestException;
 import in.gov.aicte.approval.common.exception.ResourceNotFoundException;
+import in.gov.aicte.approval.institution.entity.Institution;
+import in.gov.aicte.approval.institution.repository.InstitutionRepository;
 import in.gov.aicte.approval.user.entity.User;
 import in.gov.aicte.approval.user.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -9,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -16,10 +20,14 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final InstitutionRepository institutionRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository,
+                       InstitutionRepository institutionRepository,
+                       PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.institutionRepository = institutionRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -33,20 +41,61 @@ public class UserService {
 
     @Transactional
     public UserDto createUser(UserDto userDto) {
-        String id = userDto.getId() != null ? userDto.getId() : "USR-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        if (userDto.getEmail() == null || userDto.getEmail().isBlank()) {
+            throw new BadRequestException("Email address is required.");
+        }
+        String email = userDto.getEmail().trim().toLowerCase();
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            throw new BadRequestException("Official email address is already registered: " + email);
+        }
+
+        String id = userDto.getId() != null && !userDto.getId().isBlank()
+                ? userDto.getId().trim()
+                : "USR-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        String rawPassword = (userDto.getPassword() != null && !userDto.getPassword().isBlank())
+                ? userDto.getPassword()
+                : "demoPassword123";
+        String role = userDto.getRole() != null && !userDto.getRole().isBlank()
+                ? userDto.getRole().trim().toUpperCase()
+                : "REGIONAL_OFFICER";
+        if ("COLLEGE_REPRESENTATIVE".equalsIgnoreCase(role)) {
+            role = "COLLEGE_REP";
+        }
+
+        String instCode = userDto.getInstitutionCode() != null && !userDto.getInstitutionCode().isBlank()
+                ? userDto.getInstitutionCode().trim()
+                : null;
+        String instName = userDto.getInstitution();
+        String status = (userDto.getStatus() != null && !userDto.getStatus().isBlank())
+                ? userDto.getStatus().trim().toUpperCase()
+                : "ACTIVE";
+
+        if ("COLLEGE_REP".equalsIgnoreCase(role) && instCode != null) {
+            Optional<Institution> instOpt = institutionRepository.findByCode(instCode);
+            if (instOpt.isPresent()) {
+                Institution inst = instOpt.get();
+                if (instName == null || instName.isBlank()) {
+                    instName = inst.getName();
+                }
+                if ("PENDING_VERIFICATION".equalsIgnoreCase(inst.getStatus())) {
+                    status = "PENDING_VERIFICATION";
+                }
+            }
+        }
+
         User user = User.builder()
                 .id(id)
                 .name(userDto.getName())
-                .email(userDto.getEmail())
-                .passwordHash(passwordEncoder.encode("demoPassword123"))
-                .role(userDto.getRole() != null ? userDto.getRole() : "REGIONAL_OFFICER")
+                .email(email)
+                .passwordHash(passwordEncoder.encode(rawPassword))
+                .role(role)
                 .department(userDto.getDepartment())
                 .region(userDto.getRegion())
-                .institutionCode(userDto.getInstitutionCode())
-                .institutionName(userDto.getInstitution())
+                .institutionCode(instCode)
+                .institutionName(instName)
                 .avatarUrl(userDto.getAvatar())
                 .phone(userDto.getPhone())
-                .status("ACTIVE")
+                .status(status)
                 .build();
 
         return UserDto.fromEntity(userRepository.save(user));

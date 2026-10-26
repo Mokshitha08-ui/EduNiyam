@@ -23,11 +23,33 @@ public class EvcScheduleDto {
     private String reportStatus;
     private String observations;
     private int geoTaggedPhotosCount;
+    private String visitTime;
+    private String location;
+    private String purpose;
+    private String instructions;
+    private String rescheduleReason;
+    private String cancellationReason;
+    private String recommendation;
+    private String findingsJson;
+    private String submittedBy;
+    private java.time.LocalDateTime submittedAt;
+    private String reportReviewedBy;
+    private java.time.LocalDateTime reportReviewedAt;
+    private String reportReviewNotes;
 
     public EvcScheduleDto() {
     }
 
-    public EvcScheduleDto(String id, String applicationId, String institutionName, String region, String visitType, String status, LocalDate schedulingDeadline, LocalDate proposedDate, List<EvcMemberDto> committeeMembers, String mode, String conflictStatus, LocalDate completionDate, String reportStatus, String observations, int geoTaggedPhotosCount) {
+    public EvcScheduleDto(String id, String applicationId, String institutionName, String region,
+                          String visitType, String status, LocalDate schedulingDeadline,
+                          LocalDate proposedDate, List<EvcMemberDto> committeeMembers,
+                          String mode, String conflictStatus, LocalDate completionDate,
+                          String reportStatus, String observations, int geoTaggedPhotosCount,
+                          String visitTime, String location, String purpose, String instructions,
+                          String rescheduleReason, String cancellationReason, String recommendation,
+                          String findingsJson, String submittedBy, java.time.LocalDateTime submittedAt,
+                          String reportReviewedBy, java.time.LocalDateTime reportReviewedAt,
+                          String reportReviewNotes) {
         this.id = id;
         this.applicationId = applicationId;
         this.institutionName = institutionName;
@@ -43,6 +65,19 @@ public class EvcScheduleDto {
         this.reportStatus = reportStatus;
         this.observations = observations;
         this.geoTaggedPhotosCount = geoTaggedPhotosCount;
+        this.visitTime = visitTime;
+        this.location = location;
+        this.purpose = purpose;
+        this.instructions = instructions;
+        this.rescheduleReason = rescheduleReason;
+        this.cancellationReason = cancellationReason;
+        this.recommendation = recommendation;
+        this.findingsJson = findingsJson;
+        this.submittedBy = submittedBy;
+        this.submittedAt = submittedAt;
+        this.reportReviewedBy = reportReviewedBy;
+        this.reportReviewedAt = reportReviewedAt;
+        this.reportReviewNotes = reportReviewNotes;
     }
 
     public String getId() {
@@ -165,6 +200,110 @@ public class EvcScheduleDto {
         this.geoTaggedPhotosCount = geoTaggedPhotosCount;
     }
 
+    public String getVisitTime() {
+        return this.visitTime;
+    }
+
+    public void setVisitTime(String visitTime) {
+        this.visitTime = visitTime;
+    }
+
+    public String getLocation() {
+        return this.location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getPurpose() {
+        return this.purpose;
+    }
+
+    public void setPurpose(String purpose) {
+        this.purpose = purpose;
+    }
+
+    public String getInstructions() {
+        return this.instructions;
+    }
+
+    public void setInstructions(String instructions) {
+        this.instructions = instructions;
+    }
+
+    public String getRescheduleReason() {
+        return this.rescheduleReason;
+    }
+
+    public void setRescheduleReason(String rescheduleReason) {
+        this.rescheduleReason = rescheduleReason;
+    }
+
+    public String getCancellationReason() {
+        return this.cancellationReason;
+    }
+
+    public void setCancellationReason(String cancellationReason) {
+        this.cancellationReason = cancellationReason;
+    }
+
+    public String getRecommendation() {
+        return this.recommendation;
+    }
+
+    public void setRecommendation(String recommendation) {
+        this.recommendation = recommendation;
+    }
+
+    public String getFindingsJson() {
+        return this.findingsJson;
+    }
+
+    public void setFindingsJson(String findingsJson) {
+        this.findingsJson = findingsJson;
+    }
+
+    public String getSubmittedBy() {
+        return this.submittedBy;
+    }
+
+    public void setSubmittedBy(String submittedBy) {
+        this.submittedBy = submittedBy;
+    }
+
+    public java.time.LocalDateTime getSubmittedAt() {
+        return this.submittedAt;
+    }
+
+    public void setSubmittedAt(java.time.LocalDateTime submittedAt) {
+        this.submittedAt = submittedAt;
+    }
+
+    public String getReportReviewedBy() {
+        return this.reportReviewedBy;
+    }
+
+    public void setReportReviewedBy(String reportReviewedBy) {
+        this.reportReviewedBy = reportReviewedBy;
+    }
+
+    public java.time.LocalDateTime getReportReviewedAt() {
+        return this.reportReviewedAt;
+    }
+
+    public void setReportReviewedAt(java.time.LocalDateTime reportReviewedAt) {
+        this.reportReviewedAt = reportReviewedAt;
+    }
+
+    public String getReportReviewNotes() {
+        return this.reportReviewNotes;
+    }
+
+    public void setReportReviewNotes(String reportReviewNotes) {
+        this.reportReviewNotes = reportReviewNotes;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -185,6 +324,19 @@ public class EvcScheduleDto {
         private String reportStatus;
         private String observations;
         private int geoTaggedPhotosCount;
+        private String visitTime;
+        private String location;
+        private String purpose;
+        private String instructions;
+        private String rescheduleReason;
+        private String cancellationReason;
+        private String recommendation;
+        private String findingsJson;
+        private String submittedBy;
+        private java.time.LocalDateTime submittedAt;
+        private String reportReviewedBy;
+        private java.time.LocalDateTime reportReviewedAt;
+        private String reportReviewNotes;
 
         public Builder() {}
 
@@ -263,8 +415,80 @@ public class EvcScheduleDto {
             return this;
         }
 
+        public Builder visitTime(String visitTime) {
+            this.visitTime = visitTime;
+            return this;
+        }
+
+        public Builder location(String location) {
+            this.location = location;
+            return this;
+        }
+
+        public Builder purpose(String purpose) {
+            this.purpose = purpose;
+            return this;
+        }
+
+        public Builder instructions(String instructions) {
+            this.instructions = instructions;
+            return this;
+        }
+
+        public Builder rescheduleReason(String rescheduleReason) {
+            this.rescheduleReason = rescheduleReason;
+            return this;
+        }
+
+        public Builder cancellationReason(String cancellationReason) {
+            this.cancellationReason = cancellationReason;
+            return this;
+        }
+
+        public Builder recommendation(String recommendation) {
+            this.recommendation = recommendation;
+            return this;
+        }
+
+        public Builder findingsJson(String findingsJson) {
+            this.findingsJson = findingsJson;
+            return this;
+        }
+
+        public Builder submittedBy(String submittedBy) {
+            this.submittedBy = submittedBy;
+            return this;
+        }
+
+        public Builder submittedAt(java.time.LocalDateTime submittedAt) {
+            this.submittedAt = submittedAt;
+            return this;
+        }
+
+        public Builder reportReviewedBy(String reportReviewedBy) {
+            this.reportReviewedBy = reportReviewedBy;
+            return this;
+        }
+
+        public Builder reportReviewedAt(java.time.LocalDateTime reportReviewedAt) {
+            this.reportReviewedAt = reportReviewedAt;
+            return this;
+        }
+
+        public Builder reportReviewNotes(String reportReviewNotes) {
+            this.reportReviewNotes = reportReviewNotes;
+            return this;
+        }
+
         public EvcScheduleDto build() {
-            return new EvcScheduleDto(this.id, this.applicationId, this.institutionName, this.region, this.visitType, this.status, this.schedulingDeadline, this.proposedDate, this.committeeMembers, this.mode, this.conflictStatus, this.completionDate, this.reportStatus, this.observations, this.geoTaggedPhotosCount);
+            return new EvcScheduleDto(this.id, this.applicationId, this.institutionName, this.region,
+                    this.visitType, this.status, this.schedulingDeadline, this.proposedDate,
+                    this.committeeMembers, this.mode, this.conflictStatus, this.completionDate,
+                    this.reportStatus, this.observations, this.geoTaggedPhotosCount,
+                    this.visitTime, this.location, this.purpose, this.instructions,
+                    this.rescheduleReason, this.cancellationReason, this.recommendation,
+                    this.findingsJson, this.submittedBy, this.submittedAt,
+                    this.reportReviewedBy, this.reportReviewedAt, this.reportReviewNotes);
         }
     }
 
@@ -289,6 +513,19 @@ public class EvcScheduleDto {
                 .reportStatus(entity.getReportStatus())
                 .observations(entity.getObservations())
                 .geoTaggedPhotosCount(entity.getGeoTaggedPhotosCount())
+                .visitTime(entity.getVisitTime())
+                .location(entity.getLocation())
+                .purpose(entity.getPurpose())
+                .instructions(entity.getInstructions())
+                .rescheduleReason(entity.getRescheduleReason())
+                .cancellationReason(entity.getCancellationReason())
+                .recommendation(entity.getRecommendation())
+                .findingsJson(entity.getFindingsJson())
+                .submittedBy(entity.getSubmittedBy())
+                .submittedAt(entity.getSubmittedAt())
+                .reportReviewedBy(entity.getReportReviewedBy())
+                .reportReviewedAt(entity.getReportReviewedAt())
+                .reportReviewNotes(entity.getReportReviewNotes())
                 .build();
     }
 }

@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface RequestedIntakeRepository extends JpaRepository<RequestedIntake, Long> {
     List<RequestedIntake> findByApplicationId(String applicationId);
+    void deleteByApplicationId(String applicationId);
 }

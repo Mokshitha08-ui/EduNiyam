@@ -22,11 +22,23 @@ public class WorkflowStage {
     private int targetDays;
     @Column(name = "role_allowed", nullable = false, length = 64)
     private String roleAllowed;
+    @Column(name = "is_mandatory")
+    private boolean isMandatory = true;
+    @Column(name = "stage_type", length = 64)
+    private String stageType = "SCRUTINY";
+    @Column(name = "permitted_next_stages", length = 255)
+    private String permittedNextStages;
+    @Column(name = "checklist_json", columnDefinition = "TEXT")
+    private String checklistJson;
 
     public WorkflowStage() {
     }
 
     public WorkflowStage(String id, WorkflowDefinition workflow, String name, String code, int stageOrder, int targetDays, String roleAllowed) {
+        this(id, workflow, name, code, stageOrder, targetDays, roleAllowed, true, "SCRUTINY", null, null);
+    }
+
+    public WorkflowStage(String id, WorkflowDefinition workflow, String name, String code, int stageOrder, int targetDays, String roleAllowed, boolean isMandatory, String stageType, String permittedNextStages, String checklistJson) {
         this.id = id;
         this.workflow = workflow;
         this.name = name;
@@ -34,6 +46,10 @@ public class WorkflowStage {
         this.stageOrder = stageOrder;
         this.targetDays = targetDays;
         this.roleAllowed = roleAllowed;
+        this.isMandatory = isMandatory;
+        this.stageType = stageType != null ? stageType : "SCRUTINY";
+        this.permittedNextStages = permittedNextStages;
+        this.checklistJson = checklistJson;
     }
 
     public String getId() {
@@ -92,6 +108,46 @@ public class WorkflowStage {
         this.roleAllowed = roleAllowed;
     }
 
+    public boolean isMandatory() {
+        return this.isMandatory;
+    }
+
+    public boolean getIsMandatory() {
+        return this.isMandatory;
+    }
+
+    public void setMandatory(boolean isMandatory) {
+        this.isMandatory = isMandatory;
+    }
+
+    public void setIsMandatory(boolean isMandatory) {
+        this.isMandatory = isMandatory;
+    }
+
+    public String getStageType() {
+        return this.stageType;
+    }
+
+    public void setStageType(String stageType) {
+        this.stageType = stageType;
+    }
+
+    public String getPermittedNextStages() {
+        return this.permittedNextStages;
+    }
+
+    public void setPermittedNextStages(String permittedNextStages) {
+        this.permittedNextStages = permittedNextStages;
+    }
+
+    public String getChecklistJson() {
+        return this.checklistJson;
+    }
+
+    public void setChecklistJson(String checklistJson) {
+        this.checklistJson = checklistJson;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -104,6 +160,10 @@ public class WorkflowStage {
         private int stageOrder;
         private int targetDays;
         private String roleAllowed;
+        private boolean isMandatory = true;
+        private String stageType = "SCRUTINY";
+        private String permittedNextStages;
+        private String checklistJson;
 
         public Builder() {}
 
@@ -142,8 +202,28 @@ public class WorkflowStage {
             return this;
         }
 
+        public Builder isMandatory(boolean isMandatory) {
+            this.isMandatory = isMandatory;
+            return this;
+        }
+
+        public Builder stageType(String stageType) {
+            this.stageType = stageType;
+            return this;
+        }
+
+        public Builder permittedNextStages(String permittedNextStages) {
+            this.permittedNextStages = permittedNextStages;
+            return this;
+        }
+
+        public Builder checklistJson(String checklistJson) {
+            this.checklistJson = checklistJson;
+            return this;
+        }
+
         public WorkflowStage build() {
-            return new WorkflowStage(this.id, this.workflow, this.name, this.code, this.stageOrder, this.targetDays, this.roleAllowed);
+            return new WorkflowStage(this.id, this.workflow, this.name, this.code, this.stageOrder, this.targetDays, this.roleAllowed, this.isMandatory, this.stageType, this.permittedNextStages, this.checklistJson);
         }
     }
 

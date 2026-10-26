@@ -19,13 +19,15 @@ public class WorkflowDto {
     private String version;
     private LocalDate effectiveDate;
     private boolean isDefault;
+    private String status;
+    private String applicableApplicationTypes;
     private List<WorkflowStageDto> stages;
     private Map<String, Object> rules;
 
     public WorkflowDto() {
     }
 
-    public WorkflowDto(String id, String name, String code, String description, String version, LocalDate effectiveDate, boolean isDefault, List<WorkflowStageDto> stages, Map<String, Object> rules) {
+    public WorkflowDto(String id, String name, String code, String description, String version, LocalDate effectiveDate, boolean isDefault, String status, String applicableApplicationTypes, List<WorkflowStageDto> stages, Map<String, Object> rules) {
         this.id = id;
         this.name = name;
         this.code = code;
@@ -33,6 +35,8 @@ public class WorkflowDto {
         this.version = version;
         this.effectiveDate = effectiveDate;
         this.isDefault = isDefault;
+        this.status = status;
+        this.applicableApplicationTypes = applicableApplicationTypes;
         this.stages = stages;
         this.rules = rules;
     }
@@ -93,6 +97,22 @@ public class WorkflowDto {
         this.isDefault = isDefault;
     }
 
+    public String getStatus() {
+        return this.status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getApplicableApplicationTypes() {
+        return this.applicableApplicationTypes;
+    }
+
+    public void setApplicableApplicationTypes(String applicableApplicationTypes) {
+        this.applicableApplicationTypes = applicableApplicationTypes;
+    }
+
     public List<WorkflowStageDto> getStages() {
         return this.stages;
     }
@@ -121,6 +141,8 @@ public class WorkflowDto {
         private String version;
         private LocalDate effectiveDate;
         private boolean isDefault;
+        private String status = "ACTIVE";
+        private String applicableApplicationTypes;
         private List<WorkflowStageDto> stages;
         private Map<String, Object> rules;
 
@@ -161,6 +183,16 @@ public class WorkflowDto {
             return this;
         }
 
+        public Builder status(String status) {
+            this.status = status;
+            return this;
+        }
+
+        public Builder applicableApplicationTypes(String applicableApplicationTypes) {
+            this.applicableApplicationTypes = applicableApplicationTypes;
+            return this;
+        }
+
         public Builder stages(List<WorkflowStageDto> stages) {
             this.stages = stages;
             return this;
@@ -172,7 +204,7 @@ public class WorkflowDto {
         }
 
         public WorkflowDto build() {
-            return new WorkflowDto(this.id, this.name, this.code, this.description, this.version, this.effectiveDate, this.isDefault, this.stages, this.rules);
+            return new WorkflowDto(this.id, this.name, this.code, this.description, this.version, this.effectiveDate, this.isDefault, this.status, this.applicableApplicationTypes, this.stages, this.rules);
         }
     }
 
@@ -199,6 +231,8 @@ public class WorkflowDto {
                 .version(entity.getVersion())
                 .effectiveDate(entity.getEffectiveDate())
                 .isDefault(entity.isDefault())
+                .status(entity.getStatus())
+                .applicableApplicationTypes(entity.getApplicableApplicationTypes())
                 .stages(stageDtos)
                 .rules(rulesMap)
                 .build();

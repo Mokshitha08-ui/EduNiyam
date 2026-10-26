@@ -82,22 +82,36 @@ export const CollegeDashboard = () => {
     alert('Clarification & response successfully submitted to AICTE Scrutiny Cell.');
   };
 
-  const handleStartNewApplication = () => {
+  const handleStartNewApplication = async (status = 'SUBMITTED') => {
+    if (status === 'SUBMITTED' && !proposedCourse.trim()) {
+      alert('Please enter the proposed course name before formal submission.');
+      return;
+    }
+
     const payload = {
       institutionName: targetInstName,
       institutionCode: targetInstCode,
       applicationType: appType,
-      region: 'South-Western',
+      programme: 'Engineering & Technology',
+      region: currentUser?.region || 'South-Western',
       state: 'Karnataka',
       workflowId: 'WF-FULL',
       priority: 'NORMAL',
-      proposedCourse,
-      proposedIntake: Number(intakeCount)
+      status,
+      requestedIntake: proposedCourse ? [{
+        course: proposedCourse.trim(),
+        currentIntake: 0,
+        proposedIntake: Number(intakeCount) || 60
+      }] : []
     };
 
-    const newApp = createNewApplication(payload, currentUser);
-    setIsNewAppModalOpen(false);
-    navigate(`/applications/${newApp.id}`);
+    try {
+      const newApp = await createNewApplication(payload, currentUser);
+      setIsNewAppModalOpen(false);
+      navigate(`/applications/${newApp.id}`);
+    } catch (err) {
+      alert('Error creating application: ' + (err.response?.data?.message || err.message));
+    }
   };
 
   return (
@@ -328,22 +342,33 @@ export const CollegeDashboard = () => {
         subtitle={`Step ${appStep} of 2 - ${targetInstName}`}
         maxWidth="max-w-xl"
         footer={
-          <>
-            {appStep > 1 && (
-              <Button variant="outline" size="sm" onClick={() => setAppStep(appStep - 1)}>
-                Previous
-              </Button>
-            )}
-            {appStep === 1 ? (
-              <Button variant="primary" size="sm" onClick={() => setAppStep(2)}>
-                Next: Course Details &rarr;
-              </Button>
-            ) : (
-              <Button variant="success" size="sm" onClick={handleStartNewApplication}>
-                Submit Application
-              </Button>
-            )}
-          </>
+          <div className="flex items-center justify-between w-full">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleStartNewApplication('DRAFT')}
+              className="text-amber-800 border-amber-300 hover:bg-amber-50"
+            >
+              Save as Draft
+            </Button>
+
+            <div className="flex items-center gap-2">
+              {appStep > 1 && (
+                <Button variant="outline" size="sm" onClick={() => setAppStep(appStep - 1)}>
+                  Previous
+                </Button>
+              )}
+              {appStep === 1 ? (
+                <Button variant="primary" size="sm" onClick={() => setAppStep(2)}>
+                  Next: Course Details &rarr;
+                </Button>
+              ) : (
+                <Button variant="success" size="sm" onClick={() => handleStartNewApplication('SUBMITTED')}>
+                  Submit Application
+                </Button>
+              )}
+            </div>
+          </div>
         }
       >
         {appStep === 1 ? (
