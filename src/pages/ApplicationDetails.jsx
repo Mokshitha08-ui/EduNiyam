@@ -22,11 +22,13 @@ import {
   RotateCcw,
   Check,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Download,
+  Info
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
-import { applicationsApi, evcApi } from '../services/apiService';
+import { applicationsApi, evcApi, documentsApi } from '../services/apiService';
 import { PageHeader } from '../components/common/PageHeader';
 import { Button } from '../components/common/Button';
 import { Badge, StatusBadge } from '../components/common/Badge';
@@ -109,6 +111,10 @@ export const ApplicationDetails = () => {
   const [resubmitNotes, setResubmitNotes] = useState('');
 
   const [previewDoc, setPreviewDoc] = useState(null);
+  const [downloadingDocId, setDownloadingDocId] = useState(null);
+  const [docReviewStatus, setDocReviewStatus] = useState('VERIFIED');
+  const [docReviewRemarks, setDocReviewRemarks] = useState('');
+  const [isSubmittingDocReview, setIsSubmittingDocReview] = useState(false);
 
   // Draft Edit state
   const [isEditDraftModalOpen, setIsEditDraftModalOpen] = useState(false);
@@ -425,6 +431,61 @@ export const ApplicationDetails = () => {
     }
   };
 
+  const handleDownloadDocument = async (doc) => {
+    if (!doc?.id) return;
+    setDownloadingDocId(doc.id);
+    try {
+      if (dataMode === 'live') {
+        const blob = await documentsApi.download(doc.id);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const ext = doc.type ? `.${doc.type.toLowerCase()}` : '';
+        const name = doc.fileName || `${doc.title || 'document'}${ext}`;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } else {
+        alert(`Downloading ${doc.title} (Dummy Mode Simulation)`);
+      }
+    } catch (err) {
+      alert(`Download failed: ${err.message}`);
+    } finally {
+      setDownloadingDocId(null);
+    }
+  };
+
+  const handleSubmitDocReview = async () => {
+    if (!previewDoc?.id) return;
+    if (!docReviewRemarks.trim()) {
+      alert('Review remarks or observations are required.');
+      return;
+    }
+    setIsSubmittingDocReview(true);
+    try {
+      if (dataMode === 'live') {
+        await documentsApi.verify(previewDoc.id, {
+          status: docReviewStatus,
+          remarks: docReviewRemarks.trim()
+        });
+        await fetchLiveData();
+      } else {
+        previewDoc.status = docReviewStatus;
+        previewDoc.verificationRemarks = docReviewRemarks;
+        previewDoc.verifiedBy = currentUser?.name;
+      }
+      alert(`Document evaluation recorded: ${docReviewStatus}`);
+      setPreviewDoc(null);
+      setDocReviewRemarks('');
+    } catch (err) {
+      alert(`Failed to record document evaluation: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setIsSubmittingDocReview(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top back bar and actions */}
@@ -702,16 +763,28 @@ export const ApplicationDetails = () => {
 
             <div className="divide-y divide-slate-100">
               {application.documents?.map(doc => (
-                <div key={doc.id} className="py-3 flex items-center justify-between gap-3">
+                <div key={doc.id} className="py-3 flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
                       <FileText className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-semibold text-slate-900">{doc.title}</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-semibold text-slate-900">{doc.title}</h4>
+                        {doc.documentCode && (
+                          <span className="text-[10px] font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200">
+                            {doc.documentCode}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[11px] text-slate-400">
                         {doc.type} &bull; {doc.size} &bull; Uploaded on {formatDate(doc.uploadDate)}
                       </p>
+                      {doc.verificationRemarks && (
+                        <p className="text-[11px] text-amber-700 mt-1 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 inline-block">
+                          <strong>Evaluation:</strong> {doc.verificationRemarks}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -720,10 +793,23 @@ export const ApplicationDetails = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      icon={Eye}
-                      onClick={() => setPreviewDoc(doc)}
+                      icon={Download}
+                      onClick={() => handleDownloadDocument(doc)}
+                      isLoading={downloadingDocId === doc.id}
                     >
-                      Inspect
+                      Download
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      icon={Eye}
+                      onClick={() => {
+                        setPreviewDoc(doc);
+                        setDocReviewStatus(doc.status === 'VERIFIED' ? 'VERIFIED' : (doc.status === 'REJECTED' ? 'REJECTED' : 'VERIFIED'));
+                        setDocReviewRemarks(doc.verificationRemarks || '');
+                      }}
+                    >
+                      Inspect & Review
                     </Button>
                   </div>
                 </div>
@@ -1212,25 +1298,51 @@ export const ApplicationDetails = () => {
         </div>
       </Modal>
 
-      {/* Modal: Document Preview */}
+      {/* Modal: Document Preview & Scrutiny Verification */}
       <Modal
         isOpen={!!previewDoc}
         onClose={() => setPreviewDoc(null)}
         title={previewDoc?.title || 'Document Inspection'}
-        subtitle={`Document Metadata & Statutory Stamp`}
-        maxWidth="max-w-xl"
+        subtitle={`Document Code: ${previewDoc?.documentCode || 'N/A'} • ID: ${previewDoc?.id || ''}`}
+        maxWidth="max-w-2xl"
         footer={
-          <Button variant="outline" size="sm" onClick={() => setPreviewDoc(null)}>
-            Close
-          </Button>
+          <div className="flex items-center justify-between w-full">
+            <Button
+              variant="outline"
+              size="sm"
+              icon={Download}
+              onClick={() => handleDownloadDocument(previewDoc)}
+              isLoading={downloadingDocId === previewDoc?.id}
+            >
+              Download Original File
+            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setPreviewDoc(null)}>
+                Close
+              </Button>
+              {currentUser?.role !== 'COLLEGE_REP' && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={ShieldCheck}
+                  onClick={handleSubmitDocReview}
+                  isLoading={isSubmittingDocReview}
+                >
+                  Record Evaluation
+                </Button>
+              )}
+            </div>
+          </div>
         }
       >
         {previewDoc && (
           <div className="space-y-4">
             <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-2">
               <div className="flex justify-between">
-                <span className="text-slate-500">Document ID:</span>
-                <span className="font-mono font-bold text-slate-800">{previewDoc.id}</span>
+                <span className="text-slate-500">Document Title & Code:</span>
+                <span className="font-semibold text-slate-800">
+                  {previewDoc.title} ({previewDoc.documentCode || 'GENERAL'})
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">File Type & Size:</span>
@@ -1241,18 +1353,100 @@ export const ApplicationDetails = () => {
                 <span className="text-slate-800">{formatDate(previewDoc.uploadDate)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-500">Verification Status:</span>
+                <span className="text-slate-500">Current Status:</span>
                 <StatusBadge status={previewDoc.status} />
               </div>
+              {previewDoc.verifiedBy && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Verified By:</span>
+                  <span className="font-medium text-slate-700">{previewDoc.verifiedBy}</span>
+                </div>
+              )}
+              {previewDoc.verificationRemarks && (
+                <div className="pt-2 border-t border-slate-200">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                    Existing Verification Remarks
+                  </span>
+                  <p className="text-slate-700 bg-white p-2 rounded border border-slate-200">
+                    {previewDoc.verificationRemarks}
+                  </p>
+                </div>
+              )}
             </div>
 
-            <div className="p-8 text-center bg-slate-100 rounded-lg border border-dashed border-slate-300">
-              <FileText className="w-12 h-12 text-slate-400 mx-auto mb-2" />
-              <p className="text-xs font-semibold text-slate-700">Prototype PDF Document Viewer</p>
-              <p className="text-[11px] text-slate-500 mt-1 max-w-sm mx-auto">
-                In production connected with Spring Boot, this displays an embedded PDF viewer fetched securely from S3/MinIO bucket.
-              </p>
-            </div>
+            {/* Officer Scrutiny Determination Form */}
+            {currentUser?.role !== 'COLLEGE_REP' ? (
+              <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/50 text-xs space-y-3">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-gov-800" />
+                  <h4 className="font-bold text-slate-900">Official Scrutiny Evaluation</h4>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
+                    Regulatory Determination
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDocReviewStatus('VERIFIED')}
+                      className={`py-2 px-3 rounded-lg border text-xs font-semibold transition ${
+                        docReviewStatus === 'VERIFIED'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      ✓ Verified
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDocReviewStatus('CORRECTION_REQUIRED')}
+                      className={`py-2 px-3 rounded-lg border text-xs font-semibold transition ${
+                        docReviewStatus === 'CORRECTION_REQUIRED'
+                          ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      ⚠ Correction Req.
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDocReviewStatus('REJECTED')}
+                      className={`py-2 px-3 rounded-lg border text-xs font-semibold transition ${
+                        docReviewStatus === 'REJECTED'
+                          ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      ✕ Rejected
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                    Scrutiny Remarks & Compliance Justification *
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={docReviewRemarks}
+                    onChange={(e) => setDocReviewRemarks(e.target.value)}
+                    placeholder="Enter statutory inspection notes, deficiencies identified, or approval remarks..."
+                    className="w-full p-2.5 rounded-lg border border-slate-300 bg-white text-xs focus:ring-1 focus:ring-gov-800 focus:outline-none"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Remarks will be recorded into the regulatory audit trail and notified to the institution representative.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 text-center bg-slate-50 rounded-lg border border-slate-200 text-slate-600 text-xs">
+                <FileText className="w-8 h-8 text-gov-800 mx-auto mb-2 opacity-60" />
+                <p className="font-semibold text-slate-800">Secure Document Storage Record</p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Click the Download button below to inspect the uploaded document.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </Modal>

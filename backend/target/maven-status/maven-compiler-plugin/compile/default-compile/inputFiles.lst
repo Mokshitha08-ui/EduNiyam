@@ -12,6 +12,7 @@
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/application/dto/ResubmitRequest.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/application/dto/ReviewCreateRequest.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/application/dto/ReviewDto.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/application/dto/RiskAssessmentDto.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/application/dto/StageAdvanceRequest.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/application/dto/TimelineDto.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/application/entity/Application.java
@@ -27,6 +28,7 @@
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/application/repository/RequestedIntakeRepository.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/application/repository/ReviewRepository.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/application/service/ApplicationService.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/application/service/RiskScoringService.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/audit/controller/AuditController.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/audit/dto/AuditLogDto.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/audit/entity/AuditLog.java
@@ -50,11 +52,18 @@
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/common/exception/GlobalExceptionHandler.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/common/exception/ResourceNotFoundException.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/controller/ComplianceController.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/controller/DocumentController.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/dto/ComplianceCreateRequest.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/dto/ComplianceEvidenceSubmitRequest.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/dto/ComplianceItemDto.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/dto/ComplianceStatisticsDto.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/dto/VerifyComplianceRequest.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/entity/ComplianceItem.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/repository/ComplianceItemRepository.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/service/ComplianceService.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/service/DocumentService.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/service/DocumentVerificationService.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/service/SafeStorageUtil.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/config/CorsConfig.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/config/DataSeeder.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/config/OpenApiConfig.java
@@ -76,6 +85,8 @@
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/evc/repository/EvcMemberRepository.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/evc/repository/EvcScheduleRepository.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/evc/service/EvcService.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/institution/controller/InstitutionController.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/institution/dto/InstitutionVerificationDto.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/institution/entity/Institution.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/institution/repository/InstitutionRepository.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/notification/controller/EscalationController.java
@@ -86,6 +97,7 @@
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/notification/entity/Notification.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/notification/repository/EscalationRepository.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/notification/repository/NotificationRepository.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/notification/service/NotificationScheduler.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/notification/service/NotificationService.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/report/ReportController.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/security/CustomUserDetailsService.java

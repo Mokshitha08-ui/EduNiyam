@@ -1,2 +1,5 @@
 /Users/mokshithagali/Desktop/aicte/backend/src/test/java/in/gov/aicte/approval/AicteApprovalApplicationTests.java
 /Users/mokshithagali/Desktop/aicte/backend/src/test/java/in/gov/aicte/approval/application/ApplicationServiceTest.java
+/Users/mokshithagali/Desktop/aicte/backend/src/test/java/in/gov/aicte/approval/auth/AuthValidationTest.java
+/Users/mokshithagali/Desktop/aicte/backend/src/test/java/in/gov/aicte/approval/compliance/ComplianceAndDocumentVerificationTest.java
+/Users/mokshithagali/Desktop/aicte/backend/src/test/java/in/gov/aicte/approval/notification/NotificationAndRiskEngineTest.java

@@ -3,6 +3,7 @@ package in.gov.aicte.approval.user.controller;
 import in.gov.aicte.approval.auth.AuthService;
 import in.gov.aicte.approval.auth.dto.OfficerAccessRequestDto;
 import in.gov.aicte.approval.auth.dto.OfficerRequestActionRequest;
+import in.gov.aicte.approval.institution.dto.InstitutionVerificationDto;
 import in.gov.aicte.approval.institution.entity.Institution;
 import in.gov.aicte.approval.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -65,7 +66,7 @@ public class AdminOfficerRequestController {
 
     @GetMapping("/institutions")
     @Operation(summary = "List all registered institutions with optional verification status filter")
-    public ResponseEntity<List<Institution>> getInstitutions(
+    public ResponseEntity<List<InstitutionVerificationDto>> getInstitutions(
             @RequestParam(required = false) String status,
             @AuthenticationPrincipal UserPrincipal principal) {
         verifyAdminRole(principal);
@@ -74,7 +75,7 @@ public class AdminOfficerRequestController {
 
     @PostMapping("/institutions/{code}/verify")
     @Operation(summary = "Verify institution registration and activate associated representative accounts")
-    public ResponseEntity<Institution> verifyInstitution(
+    public ResponseEntity<InstitutionVerificationDto> verifyInstitution(
             @PathVariable String code,
             @AuthenticationPrincipal UserPrincipal principal) {
         verifyAdminRole(principal);
@@ -83,7 +84,7 @@ public class AdminOfficerRequestController {
 
     @PostMapping("/institutions/{code}/reject")
     @Operation(summary = "Reject institution registration with reason")
-    public ResponseEntity<Institution> rejectInstitution(
+    public ResponseEntity<InstitutionVerificationDto> rejectInstitution(
             @PathVariable String code,
             @RequestBody(required = false) Map<String, String> payload,
             @AuthenticationPrincipal UserPrincipal principal) {

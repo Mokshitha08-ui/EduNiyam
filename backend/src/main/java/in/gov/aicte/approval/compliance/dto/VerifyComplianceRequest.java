@@ -5,6 +5,7 @@ public class VerifyComplianceRequest {
 
     private String status;
     private String reason;
+    private String remarks;
 
     public VerifyComplianceRequest() {
     }
@@ -12,6 +13,7 @@ public class VerifyComplianceRequest {
     public VerifyComplianceRequest(String status, String reason) {
         this.status = status;
         this.reason = reason;
+        this.remarks = reason;
     }
 
     public String getStatus() {
@@ -23,11 +25,25 @@ public class VerifyComplianceRequest {
     }
 
     public String getReason() {
-        return this.reason;
+        return this.reason != null ? this.reason : this.remarks;
     }
 
     public void setReason(String reason) {
         this.reason = reason;
+        if (this.remarks == null) {
+            this.remarks = reason;
+        }
+    }
+
+    public String getRemarks() {
+        return this.remarks != null ? this.remarks : this.reason;
+    }
+
+    public void setRemarks(String remarks) {
+        this.remarks = remarks;
+        if (this.reason == null) {
+            this.reason = remarks;
+        }
     }
 
     public static Builder builder() {

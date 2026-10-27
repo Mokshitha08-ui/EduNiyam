@@ -16,6 +16,7 @@ in/gov/aicte/approval/compliance/controller/ComplianceController.class
 in/gov/aicte/approval/compliance/service/ComplianceService.class
 in/gov/aicte/approval/common/dto/ApiResponse$Builder.class
 in/gov/aicte/approval/workflow/dto/WorkflowDto$1.class
+in/gov/aicte/approval/compliance/dto/ComplianceStatisticsDto.class
 in/gov/aicte/approval/application/repository/ApplicationRepository.class
 in/gov/aicte/approval/audit/controller/AuditController.class
 in/gov/aicte/approval/application/service/ApplicationService$1.class
@@ -24,6 +25,7 @@ in/gov/aicte/approval/workflow/entity/WorkflowDefinition$Builder.class
 in/gov/aicte/approval/application/entity/ApplicationDocument$Builder.class
 in/gov/aicte/approval/application/dto/ObservationCreateRequest.class
 in/gov/aicte/approval/application/dto/ObservationDto.class
+in/gov/aicte/approval/application/service/RiskScoringService.class
 in/gov/aicte/approval/evc/dto/EvcAssignCommitteeRequest.class
 in/gov/aicte/approval/auth/dto/AuthResponse$Builder.class
 in/gov/aicte/approval/evc/dto/EvcReportReviewRequest.class
@@ -32,7 +34,6 @@ in/gov/aicte/approval/auth/dto/OfficerRequestActionRequest.class
 in/gov/aicte/approval/application/dto/TimelineDto$Builder.class
 in/gov/aicte/approval/application/repository/ApplicationStageHistoryRepository.class
 in/gov/aicte/approval/application/dto/ObservationVerifyRequest.class
-in/gov/aicte/approval/compliance/dto/ComplianceItemDto$Builder.class
 in/gov/aicte/approval/institution/repository/InstitutionRepository.class
 in/gov/aicte/approval/application/dto/AssignOfficerRequest$Builder.class
 in/gov/aicte/approval/auth/dto/InstitutionRegisterResponse.class
@@ -64,6 +65,7 @@ in/gov/aicte/approval/application/entity/RequestedIntake$Builder.class
 in/gov/aicte/approval/notification/service/NotificationService.class
 in/gov/aicte/approval/audit/repository/AuditLogRepository.class
 in/gov/aicte/approval/evc/dto/EvcRescheduleRequest.class
+in/gov/aicte/approval/compliance/dto/ComplianceCreateRequest.class
 in/gov/aicte/approval/application/entity/Application.class
 in/gov/aicte/approval/user/service/UserService.class
 in/gov/aicte/approval/evc/dto/EvcCompleteRequest.class
@@ -73,12 +75,15 @@ in/gov/aicte/approval/application/dto/ResubmitRequest.class
 in/gov/aicte/approval/compliance/dto/VerifyComplianceRequest.class
 in/gov/aicte/approval/workflow/repository/WorkflowDefinitionRepository.class
 in/gov/aicte/approval/application/repository/ObservationRepository.class
+in/gov/aicte/approval/institution/controller/InstitutionController.class
 in/gov/aicte/approval/notification/repository/NotificationRepository.class
 in/gov/aicte/approval/evc/dto/EvcAssignRequest$Builder.class
 in/gov/aicte/approval/workflow/dto/WorkflowDto$Builder.class
+in/gov/aicte/approval/compliance/dto/ComplianceEvidenceSubmitRequest.class
 in/gov/aicte/approval/application/dto/ObservationDto$Builder.class
 in/gov/aicte/approval/evc/service/EvcService.class
 in/gov/aicte/approval/evc/dto/EvcMemberAssignItem.class
+in/gov/aicte/approval/application/dto/RiskAssessmentDto.class
 in/gov/aicte/approval/common/dto/ApiResponse.class
 in/gov/aicte/approval/security/SecurityConfig.class
 in/gov/aicte/approval/evc/dto/EvcReportSubmitRequest.class
@@ -90,6 +95,8 @@ in/gov/aicte/approval/dashboard/DashboardController.class
 in/gov/aicte/approval/application/entity/Review$Builder.class
 in/gov/aicte/approval/user/repository/OfficerAccessRequestRepository.class
 in/gov/aicte/approval/institution/entity/Institution.class
+in/gov/aicte/approval/notification/service/NotificationScheduler.class
+in/gov/aicte/approval/compliance/service/DocumentService$1.class
 in/gov/aicte/approval/application/dto/DeficiencyRequest.class
 in/gov/aicte/approval/config/CorsConfig.class
 in/gov/aicte/approval/AicteApprovalApplication.class
@@ -124,6 +131,7 @@ in/gov/aicte/approval/notification/dto/EscalationDto$Builder.class
 in/gov/aicte/approval/user/entity/OfficerAccessRequest$Builder.class
 in/gov/aicte/approval/application/dto/ApplicationDocumentDto$Builder.class
 in/gov/aicte/approval/evc/dto/EvcMemberDto.class
+in/gov/aicte/approval/compliance/service/SafeStorageUtil.class
 in/gov/aicte/approval/evc/dto/EvcScheduleCreateRequest.class
 in/gov/aicte/approval/security/JwtAuthenticationFilter.class
 in/gov/aicte/approval/application/dto/RequestedIntakeDto$Builder.class
@@ -134,6 +142,7 @@ in/gov/aicte/approval/common/HealthController.class
 in/gov/aicte/approval/common/exception/ResourceNotFoundException.class
 in/gov/aicte/approval/institution/entity/Institution$Builder.class
 in/gov/aicte/approval/application/service/ApplicationService.class
+in/gov/aicte/approval/compliance/service/DocumentService.class
 in/gov/aicte/approval/evc/dto/EvcMemberDto$Builder.class
 in/gov/aicte/approval/user/controller/UserController.class
 in/gov/aicte/approval/application/repository/RequestedIntakeRepository.class
@@ -142,16 +151,21 @@ in/gov/aicte/approval/notification/controller/NotificationController.class
 in/gov/aicte/approval/notification/dto/EscalationDto.class
 in/gov/aicte/approval/user/entity/User.class
 in/gov/aicte/approval/application/dto/ReviewDto.class
+in/gov/aicte/approval/compliance/service/DocumentVerificationService.class
 in/gov/aicte/approval/security/CustomUserDetailsService.class
 in/gov/aicte/approval/application/dto/StageAdvanceRequest$Builder.class
 in/gov/aicte/approval/evc/controller/EvcController.class
 in/gov/aicte/approval/application/dto/TimelineDto.class
 in/gov/aicte/approval/application/dto/StageAdvanceRequest.class
 in/gov/aicte/approval/compliance/repository/ComplianceItemRepository.class
+in/gov/aicte/approval/compliance/service/DocumentVerificationService$AnalysisResult.class
 in/gov/aicte/approval/application/dto/AssignOfficerRequest.class
+in/gov/aicte/approval/compliance/controller/DocumentController.class
 in/gov/aicte/approval/user/repository/UserRepository.class
 in/gov/aicte/approval/workflow/dto/WorkflowStageDto$Builder.class
 in/gov/aicte/approval/evc/repository/EvcScheduleRepository.class
+in/gov/aicte/approval/compliance/service/ComplianceService$1.class
+in/gov/aicte/approval/institution/dto/InstitutionVerificationDto.class
 in/gov/aicte/approval/application/dto/RequestedIntakeDto.class
 in/gov/aicte/approval/application/entity/Application$Builder.class
 in/gov/aicte/approval/application/entity/Observation.class

@@ -99,16 +99,74 @@ export const complianceApi = {
   getAll: async (params = {}) => {
     return apiClient.get('/compliance', { params });
   },
+  getStatistics: async (params = {}) => {
+    return apiClient.get('/compliance/statistics', { params });
+  },
   getById: async (id) => {
     return apiClient.get(`/compliance/${id}`);
   },
+  create: async (payload) => {
+    return apiClient.post('/compliance', payload);
+  },
+  update: async (id, payload) => {
+    return apiClient.put(`/compliance/${id}`, payload);
+  },
+  submitEvidence: async (id, payload) => {
+    return apiClient.post(`/compliance/${id}/submit-evidence`, payload);
+  },
   verify: async (id, payload) => {
     return apiClient.post(`/compliance/${id}/verify`, payload);
+  },
+  analyze: async (id) => {
+    return apiClient.post(`/compliance/${id}/analyze`);
+  },
+  triggerReminders: async (thresholdDays) => {
+    const params = thresholdDays ? { thresholdDays } : {};
+    return apiClient.post('/compliance/reminders/trigger', null, { params });
   },
   upload: async (id, formData) => {
     return apiClient.post(`/compliance/${id}/upload`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+  },
+  download: async (id) => {
+    const token = localStorage.getItem('aicte_jwt_token');
+    const res = await fetch(`${API_BASE_URL}/compliance/${id}/download`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error(`Failed to download compliance document (${res.status})`);
+    return res.blob();
+  },
+};
+
+export const documentsApi = {
+  getAll: async (params = {}) => {
+    return apiClient.get('/documents', { params });
+  },
+  getById: async (id) => {
+    return apiClient.get(`/documents/${id}`);
+  },
+  upload: async (formData) => {
+    return apiClient.post('/documents/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  delete: async (id) => {
+    return apiClient.delete(`/documents/${id}`);
+  },
+  verify: async (id, payload) => {
+    return apiClient.post(`/documents/${id}/verify`, payload);
+  },
+  analyze: async (id) => {
+    return apiClient.post(`/documents/${id}/analyze`);
+  },
+  download: async (id) => {
+    const token = localStorage.getItem('aicte_jwt_token');
+    const res = await fetch(`${API_BASE_URL}/documents/${id}/download`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) throw new Error(`Failed to download document (${res.status})`);
+    return res.blob();
   },
 };
 
@@ -154,11 +212,23 @@ export const notificationsApi = {
   getAll: async () => {
     return apiClient.get('/notifications');
   },
+  getUnreadCount: async () => {
+    return apiClient.get('/notifications/unread-count');
+  },
   markRead: async (id) => {
     return apiClient.patch(`/notifications/${id}/read`);
   },
   markAllRead: async () => {
     return apiClient.patch('/notifications/read-all');
+  },
+  acknowledge: async (id, payload) => {
+    return apiClient.patch(`/notifications/${id}/acknowledge`, payload);
+  },
+  complete: async (id, payload) => {
+    return apiClient.patch(`/notifications/${id}/complete`, payload);
+  },
+  triggerReminders: async () => {
+    return apiClient.post('/notifications/trigger-reminders');
   },
 };
 
@@ -168,6 +238,9 @@ export const escalationsApi = {
   },
   acknowledge: async (id, payload) => {
     return apiClient.post(`/escalations/${id}/acknowledge`, payload);
+  },
+  trigger: async (payload) => {
+    return apiClient.post('/escalations/trigger', payload);
   },
 };
 
@@ -213,6 +286,49 @@ export const authApi = {
   },
   logout: async () => {
     return apiClient.post('/auth/logout');
+  },
+};
+
+// Dashboard KPIs API
+export const dashboardApi = {
+  getStats: async () => {
+    return apiClient.get('/dashboard/stats');
+  },
+};
+
+// Regulatory Analytics & BI Reports API
+export const reportsApi = {
+  getSummary: async (academicYear = '2026-27') => {
+    return apiClient.get('/reports/summary', { params: { academicYear } });
+  },
+  getStageAgeing: async () => {
+    return apiClient.get('/reports/stage-ageing');
+  },
+  getOfficerWorkload: async () => {
+    return apiClient.get('/reports/officer-workload');
+  },
+  getRegionalPerformance: async () => {
+    return apiClient.get('/reports/regional-performance');
+  },
+  getEvcAnalytics: async () => {
+    return apiClient.get('/reports/evc-analytics');
+  },
+  getComplianceAnalytics: async () => {
+    return apiClient.get('/reports/compliance-analytics');
+  },
+  getRiskQueue: async () => {
+    return apiClient.get('/reports/risk-queue');
+  },
+};
+
+// Institutions API
+export const institutionsApi = {
+  getAll: async (status) => {
+    const params = status ? { status } : {};
+    return apiClient.get('/institutions', { params });
+  },
+  getPending: async () => {
+    return apiClient.get('/institutions/pending');
   },
 };
 

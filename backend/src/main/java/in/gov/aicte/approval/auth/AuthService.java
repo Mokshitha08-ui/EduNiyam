@@ -1,10 +1,13 @@
 package in.gov.aicte.approval.auth;
 
+import in.gov.aicte.approval.application.entity.ApplicationDocument;
+import in.gov.aicte.approval.application.repository.ApplicationDocumentRepository;
 import in.gov.aicte.approval.audit.entity.AuditLog;
 import in.gov.aicte.approval.audit.repository.AuditLogRepository;
 import in.gov.aicte.approval.auth.dto.*;
 import in.gov.aicte.approval.common.exception.BadRequestException;
 import in.gov.aicte.approval.common.exception.ResourceNotFoundException;
+import in.gov.aicte.approval.institution.dto.InstitutionVerificationDto;
 import in.gov.aicte.approval.institution.entity.Institution;
 import in.gov.aicte.approval.institution.repository.InstitutionRepository;
 import in.gov.aicte.approval.security.JwtTokenProvider;
@@ -37,6 +40,7 @@ public class AuthService {
     private final OfficerAccessRequestRepository officerAccessRequestRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuditLogRepository auditLogRepository;
+    private final ApplicationDocumentRepository applicationDocumentRepository;
 
     public AuthService(AuthenticationManager authenticationManager,
                        JwtTokenProvider tokenProvider,
@@ -44,7 +48,8 @@ public class AuthService {
                        InstitutionRepository institutionRepository,
                        OfficerAccessRequestRepository officerAccessRequestRepository,
                        PasswordEncoder passwordEncoder,
-                       AuditLogRepository auditLogRepository) {
+                       AuditLogRepository auditLogRepository,
+                       ApplicationDocumentRepository applicationDocumentRepository) {
         this.authenticationManager = authenticationManager;
         this.tokenProvider = tokenProvider;
         this.userRepository = userRepository;
@@ -52,6 +57,7 @@ public class AuthService {
         this.officerAccessRequestRepository = officerAccessRequestRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditLogRepository = auditLogRepository;
+        this.applicationDocumentRepository = applicationDocumentRepository;
     }
 
     @Transactional
@@ -298,6 +304,10 @@ public class AuthService {
 
     @Transactional
     public AuthResponse loginInstitution(InstitutionLoginRequest request) {
+        if (request.getInstitutionCode() == null || request.getInstitutionCode().trim().isEmpty()) {
+            throw new BadRequestException("College ID / Institution Code is required.");
+        }
+
         String email = request.getEmail().trim().toLowerCase();
         String code = request.getInstitutionCode().trim();
 
@@ -309,7 +319,7 @@ public class AuthService {
         }
 
         if (user.getInstitutionCode() == null || !user.getInstitutionCode().equalsIgnoreCase(code)) {
-            throw new BadRequestException("Institution Code / College ID does not match the registered representative email.");
+            throw new BadRequestException("College ID / Institution Code does not match the registered representative email.");
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
@@ -370,13 +380,13 @@ public class AuthService {
             throw new BadRequestException("Official email address is already registered: " + request.getEmail());
         }
 
-        String code = request.getInstitutionCode() != null ? request.getInstitutionCode().trim() : "";
-        if (!code.isEmpty()) {
-            if (institutionRepository.existsByCode(code)) {
-                throw new BadRequestException("Institution Code / College ID is already registered: " + code);
-            }
-        } else {
-            code = "1-" + (10000000 + new Random().nextInt(90000000));
+        if (request.getInstitutionCode() == null || request.getInstitutionCode().trim().isEmpty()) {
+            throw new BadRequestException("College ID / Institution Code is required.");
+        }
+
+        String code = request.getInstitutionCode().trim();
+        if (institutionRepository.existsByCode(code)) {
+            throw new BadRequestException("College ID / Institution Code is already registered: " + code);
         }
 
         String region = determineRegion(request.getState());
@@ -450,20 +460,75 @@ public class AuthService {
         return "Central";
     }
 
-    @Transactional(readOnly = true)
-    public List<Institution> getInstitutions(String status) {
-        List<Institution> all = institutionRepository.findAll();
-        if (status != null && !status.isBlank()) {
-            String filter = status.trim().toUpperCase();
-            return all.stream()
-                    .filter(i -> filter.equalsIgnoreCase(i.getStatus()))
-                    .collect(Collectors.toList());
+    public InstitutionVerificationDto toVerificationDto(Institution inst) {
+        if (inst == null) return null;
+        InstitutionVerificationDto dto = new InstitutionVerificationDto();
+        dto.setCode(inst.getCode());
+        dto.setInstitutionCode(inst.getCode());
+        dto.setName(inst.getName());
+        dto.setInstitutionName(inst.getName());
+        dto.setInstitutionType(inst.getInstitutionType());
+        dto.setRegion(inst.getRegion());
+        dto.setState(inst.getState());
+        dto.setDistrict(inst.getDistrict());
+        dto.setAddress(inst.getAddress());
+        dto.setStatus(inst.getStatus());
+        dto.setContactEmail(inst.getContactEmail());
+        dto.setContactPhone(inst.getContactPhone());
+        dto.setCreatedAt(inst.getCreatedAt());
+        if (inst.getCreatedAt() != null) {
+            dto.setRegisteredAt(inst.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         }
-        return all;
+
+        List<User> repUsers = userRepository.findByInstitutionCode(inst.getCode());
+        if (repUsers != null && !repUsers.isEmpty()) {
+            User rep = repUsers.get(0);
+            dto.setRepresentativeName(rep.getName());
+            dto.setRepresentativeEmail(rep.getEmail());
+            dto.setRepresentativeDesignation(rep.getDepartment());
+            dto.setRepresentativePhone(rep.getPhone());
+            dto.setRepresentativeStatus(rep.getStatus());
+        }
+
+        if (applicationDocumentRepository != null) {
+            try {
+                List<ApplicationDocument> docs = applicationDocumentRepository.findByInstitutionCode(inst.getCode());
+                dto.setDocumentsCount(docs != null ? docs.size() : 0);
+            } catch (Exception ignored) {
+                dto.setDocumentsCount(0);
+            }
+        }
+
+        if ("REJECTED".equalsIgnoreCase(inst.getStatus())) {
+            List<AuditLog> logs = auditLogRepository.findByEntityIdOrderByCreatedAtDesc(inst.getCode());
+            if (logs != null) {
+                for (AuditLog l : logs) {
+                    if ("INSTITUTION_REJECTED".equalsIgnoreCase(l.getAction())) {
+                        dto.setRejectionReason(l.getReason());
+                        break;
+                    }
+                }
+            }
+        }
+
+        return dto;
+    }
+
+    @Transactional(readOnly = true)
+    public List<InstitutionVerificationDto> getInstitutions(String status) {
+        List<Institution> institutions;
+        if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
+            institutions = institutionRepository.findAllByStatusOrderByCreatedAtDesc(status.trim().toUpperCase());
+        } else {
+            institutions = institutionRepository.findAllByOrderByCreatedAtDesc();
+        }
+        return institutions.stream()
+                .map(this::toVerificationDto)
+                .collect(Collectors.toList());
     }
 
     @Transactional
-    public Institution verifyInstitution(String code, String adminUsername) {
+    public InstitutionVerificationDto verifyInstitution(String code, String adminUsername) {
         Institution inst = institutionRepository.findByCode(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Institution", "code", code));
 
@@ -493,11 +558,15 @@ public class AuthService {
                 .build();
         auditLogRepository.save(auditLog);
 
-        return inst;
+        return toVerificationDto(inst);
     }
 
     @Transactional
-    public Institution rejectInstitution(String code, String reason, String adminUsername) {
+    public InstitutionVerificationDto rejectInstitution(String code, String reason, String adminUsername) {
+        if (reason == null || reason.trim().isBlank()) {
+            throw new BadRequestException("Rejection reason is required and cannot be blank.");
+        }
+
         Institution inst = institutionRepository.findByCode(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Institution", "code", code));
 
@@ -522,12 +591,14 @@ public class AuthService {
                 .action("INSTITUTION_REJECTED")
                 .previousState(prevState)
                 .newState("REJECTED")
-                .reason("Institution registration rejected by " + adminUsername + ". Reason: " + (reason != null ? reason : "Not specified"))
+                .reason("Institution registration rejected by " + adminUsername + ". Reason: " + reason.trim())
                 .ipAddress("127.0.0.1")
                 .build();
         auditLogRepository.save(auditLog);
 
-        return inst;
+        InstitutionVerificationDto dto = toVerificationDto(inst);
+        dto.setRejectionReason(reason.trim());
+        return dto;
     }
 
     @Transactional(readOnly = true)

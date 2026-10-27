@@ -248,6 +248,7 @@ public class ApplicationService {
                 .nextDeadline(deadline)
                 .deficiencyCount(0)
                 .missingDocCount(0)
+                .detailsJson(dto.getDetailsJson())
                 .build();
 
         Application savedApp = applicationRepository.save(application);
@@ -339,6 +340,9 @@ public class ApplicationService {
         if (dto.getState() != null && !dto.getState().isBlank()) {
             app.setState(dto.getState().trim());
         }
+        if (dto.getDetailsJson() != null) {
+            app.setDetailsJson(dto.getDetailsJson());
+        }
 
         // Update requested intakes if provided
         if (dto.getRequestedIntake() != null) {
@@ -402,6 +406,9 @@ public class ApplicationService {
             throw new BadRequestException("An active application for " + app.getApplicationType() + " is already in progress for this institution. Duplicate submissions are prohibited.");
         }
 
+        // Validate mandatory documents before submission
+        validateMandatoryDocuments(app);
+
         // Resolve workflow if needed
         String wfId = app.getWorkflowId();
         if (wfId == null || wfId.isBlank()) {
@@ -452,6 +459,7 @@ public class ApplicationService {
                 .message(app.getInstitutionName() + " submitted an application for " + app.getApplicationType())
                 .entityType("APPLICATION")
                 .entityId(app.getId())
+                .institutionCode(app.getInstitutionCode())
                 .timestamp(LocalDateTime.now().format(AUDIT_DATE_FORMAT))
                 .isRead(false)
                 .recipientRole("REGIONAL_OFFICER")
@@ -459,7 +467,73 @@ public class ApplicationService {
                 .build();
         notificationRepository.save(notification);
 
+        Notification collegeNotif = Notification.builder()
+                .id("NOTIF-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase())
+                .category("APPLICATION_SUBMITTED")
+                .urgency("NORMAL")
+                .title("Application Lodged: " + app.getId())
+                .message("Your application for " + app.getApplicationType() + " (AY 2026-27) was submitted successfully.")
+                .entityType("APPLICATION")
+                .entityId(app.getId())
+                .institutionCode(app.getInstitutionCode())
+                .timestamp(LocalDateTime.now().format(AUDIT_DATE_FORMAT))
+                .isRead(false)
+                .recipientRole("COLLEGE_REP")
+                .link("/applications/" + app.getId())
+                .build();
+        notificationRepository.save(collegeNotif);
+
         return getApplicationById(id);
+    }
+
+    public List<String> getMandatoryDocumentCodesForType(String appType) {
+        if (appType == null) return List.of();
+        String lower = appType.toLowerCase();
+        if (lower.contains("extension") || lower.contains("eoa")) {
+            return List.of("DOC-EOA-PREV", "DOC-EOA-SAFETY", "DOC-EOA-FIN");
+        }
+        if (lower.contains("increase in approved") || (lower.contains("increase") && !lower.contains("new course"))) {
+            return List.of("DOC-INCR-RES", "DOC-INCR-FLOOR", "DOC-INCR-FACULTY", "DOC-INCR-ENROLL");
+        }
+        if (lower.contains("new course") || lower.contains("programme")) {
+            return List.of("DOC-NEWCRS-UNIV", "DOC-NEWCRS-DPR", "DOC-NEWCRS-LAB");
+        }
+        if (lower.contains("new technical") || lower.contains("new institution")) {
+            return List.of("DOC-NEWINST-TRUST", "DOC-NEWINST-LAND", "DOC-NEWINST-PLAN", "DOC-NEWINST-FDR");
+        }
+        if (lower.contains("closure") || lower.contains("discontinuation")) {
+            return List.of("DOC-CLOSE-RES", "DOC-CLOSE-NOC", "DOC-CLOSE-STUDENT");
+        }
+        if (lower.contains("site") || lower.contains("infrastructure")) {
+            return List.of("DOC-SITE-MASTER", "DOC-SITE-CLU", "DOC-SITE-SAFETY");
+        }
+        if (lower.contains("co-ed") || lower.contains("coed")) {
+            return List.of("DOC-COED-RES", "DOC-COED-UNIV", "DOC-COED-INSPECT");
+        }
+        return List.of("DOC-INCR-RES");
+    }
+
+    public void validateMandatoryDocuments(Application app) {
+        List<String> requiredCodes = getMandatoryDocumentCodesForType(app.getApplicationType());
+        if (requiredCodes.isEmpty()) return;
+
+        List<ApplicationDocument> uploadedDocs = documentRepository.findByApplicationId(app.getId());
+        List<String> missing = new ArrayList<>();
+        for (String reqCode : requiredCodes) {
+            boolean found = uploadedDocs.stream().anyMatch(d -> {
+                if (d.getDocumentCode() != null && d.getDocumentCode().equalsIgnoreCase(reqCode)) return true;
+                if (d.getTitle() != null && d.getTitle().toUpperCase().contains(reqCode.toUpperCase())) return true;
+                return false;
+            });
+            if (!found) {
+                missing.add(reqCode);
+            }
+        }
+
+        if (!missing.isEmpty()) {
+            throw new BadRequestException("Submission blocked: Mandatory statutory document(s) missing: ["
+                    + String.join(", ", missing) + "]. All required documents must be uploaded before application submission.");
+        }
     }
 
     @Transactional
@@ -1193,5 +1267,15 @@ public class ApplicationService {
                 }
             }
         }
+    }
+
+    public List<ApplicationDto> getRiskPrioritizedQueue() {
+        return applicationRepository.findAll().stream()
+                .map(ApplicationDto::fromEntity)
+                .filter(dto -> !"RESOLVED".equalsIgnoreCase(dto.getRiskLevel()))
+                .sorted((a, b) -> Integer.compare(
+                        b.getRiskScore() != null ? b.getRiskScore() : 0,
+                        a.getRiskScore() != null ? a.getRiskScore() : 0))
+                .collect(Collectors.toList());
     }
 }

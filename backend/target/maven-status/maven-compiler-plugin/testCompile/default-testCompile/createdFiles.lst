@@ -1,2 +1,5 @@
 in/gov/aicte/approval/application/ApplicationServiceTest.class
+in/gov/aicte/approval/auth/AuthValidationTest.class
 in/gov/aicte/approval/AicteApprovalApplicationTests.class
+in/gov/aicte/approval/compliance/ComplianceAndDocumentVerificationTest.class
+in/gov/aicte/approval/notification/NotificationAndRiskEngineTest.class

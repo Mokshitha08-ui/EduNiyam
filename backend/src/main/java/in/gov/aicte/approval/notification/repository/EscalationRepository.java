@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface EscalationRepository extends JpaRepository<Escalation, String> {
     List<Escalation> findAllByOrderByCreatedAtDesc();
+    boolean existsByEntityIdAndStatus(String entityId, String status);
+    boolean existsByEntityIdAndLevelAndStatus(String entityId, String level, String status);
 }

@@ -40,6 +40,39 @@ public class Notification {
     @Column(name = "recipient_role", nullable = false, length = 64)
     private String recipientRole;
 
+    @Column(name = "institution_code", length = 64)
+    private String institutionCode;
+
+    @Column(name = "recipient_id", length = 64)
+    private String recipientId;
+
+    @Column(name = "recipient_email", length = 128)
+    private String recipientEmail;
+
+    @Column(name = "is_acknowledged")
+    private boolean isAcknowledged = false;
+
+    @Column(name = "acknowledged_at")
+    private LocalDateTime acknowledgedAt;
+
+    @Column(name = "acknowledged_by", length = 128)
+    private String acknowledgedBy;
+
+    @Column(name = "action_required")
+    private boolean actionRequired = false;
+
+    @Column(name = "action_completed")
+    private boolean actionCompleted = false;
+
+    @Column(name = "action_completed_at")
+    private LocalDateTime actionCompletedAt;
+
+    @Column(name = "action_completed_by", length = 128)
+    private String actionCompletedBy;
+
+    @Column(name = "due_date")
+    private LocalDateTime dueDate;
+
     @Column(name = "link", length = 255)
     private String link;
 
@@ -155,6 +188,94 @@ public class Notification {
         this.recipientRole = recipientRole;
     }
 
+    public String getInstitutionCode() {
+        return this.institutionCode;
+    }
+
+    public void setInstitutionCode(String institutionCode) {
+        this.institutionCode = institutionCode;
+    }
+
+    public String getRecipientId() {
+        return recipientId;
+    }
+
+    public void setRecipientId(String recipientId) {
+        this.recipientId = recipientId;
+    }
+
+    public String getRecipientEmail() {
+        return recipientEmail;
+    }
+
+    public void setRecipientEmail(String recipientEmail) {
+        this.recipientEmail = recipientEmail;
+    }
+
+    public boolean isAcknowledged() {
+        return isAcknowledged;
+    }
+
+    public void setAcknowledged(boolean acknowledged) {
+        isAcknowledged = acknowledged;
+    }
+
+    public LocalDateTime getAcknowledgedAt() {
+        return acknowledgedAt;
+    }
+
+    public void setAcknowledgedAt(LocalDateTime acknowledgedAt) {
+        this.acknowledgedAt = acknowledgedAt;
+    }
+
+    public String getAcknowledgedBy() {
+        return acknowledgedBy;
+    }
+
+    public void setAcknowledgedBy(String acknowledgedBy) {
+        this.acknowledgedBy = acknowledgedBy;
+    }
+
+    public boolean isActionRequired() {
+        return actionRequired;
+    }
+
+    public void setActionRequired(boolean actionRequired) {
+        this.actionRequired = actionRequired;
+    }
+
+    public boolean isActionCompleted() {
+        return actionCompleted;
+    }
+
+    public void setActionCompleted(boolean actionCompleted) {
+        this.actionCompleted = actionCompleted;
+    }
+
+    public LocalDateTime getActionCompletedAt() {
+        return actionCompletedAt;
+    }
+
+    public void setActionCompletedAt(LocalDateTime actionCompletedAt) {
+        this.actionCompletedAt = actionCompletedAt;
+    }
+
+    public String getActionCompletedBy() {
+        return actionCompletedBy;
+    }
+
+    public void setActionCompletedBy(String actionCompletedBy) {
+        this.actionCompletedBy = actionCompletedBy;
+    }
+
+    public LocalDateTime getDueDate() {
+        return dueDate;
+    }
+
+    public void setDueDate(LocalDateTime dueDate) {
+        this.dueDate = dueDate;
+    }
+
     public String getLink() {
         return this.link;
     }
@@ -186,6 +307,17 @@ public class Notification {
         private String timestamp;
         private boolean isRead = false;
         private String recipientRole;
+        private String institutionCode;
+        private String recipientId;
+        private String recipientEmail;
+        private boolean isAcknowledged = false;
+        private LocalDateTime acknowledgedAt;
+        private String acknowledgedBy;
+        private boolean actionRequired = false;
+        private boolean actionCompleted = false;
+        private LocalDateTime actionCompletedAt;
+        private String actionCompletedBy;
+        private LocalDateTime dueDate;
         private String link;
         private LocalDateTime createdAt;
 
@@ -246,6 +378,61 @@ public class Notification {
             return this;
         }
 
+        public Builder institutionCode(String institutionCode) {
+            this.institutionCode = institutionCode;
+            return this;
+        }
+
+        public Builder recipientId(String recipientId) {
+            this.recipientId = recipientId;
+            return this;
+        }
+
+        public Builder recipientEmail(String recipientEmail) {
+            this.recipientEmail = recipientEmail;
+            return this;
+        }
+
+        public Builder isAcknowledged(boolean isAcknowledged) {
+            this.isAcknowledged = isAcknowledged;
+            return this;
+        }
+
+        public Builder acknowledgedAt(LocalDateTime acknowledgedAt) {
+            this.acknowledgedAt = acknowledgedAt;
+            return this;
+        }
+
+        public Builder acknowledgedBy(String acknowledgedBy) {
+            this.acknowledgedBy = acknowledgedBy;
+            return this;
+        }
+
+        public Builder actionRequired(boolean actionRequired) {
+            this.actionRequired = actionRequired;
+            return this;
+        }
+
+        public Builder actionCompleted(boolean actionCompleted) {
+            this.actionCompleted = actionCompleted;
+            return this;
+        }
+
+        public Builder actionCompletedAt(LocalDateTime actionCompletedAt) {
+            this.actionCompletedAt = actionCompletedAt;
+            return this;
+        }
+
+        public Builder actionCompletedBy(String actionCompletedBy) {
+            this.actionCompletedBy = actionCompletedBy;
+            return this;
+        }
+
+        public Builder dueDate(LocalDateTime dueDate) {
+            this.dueDate = dueDate;
+            return this;
+        }
+
         public Builder link(String link) {
             this.link = link;
             return this;
@@ -257,7 +444,19 @@ public class Notification {
         }
 
         public Notification build() {
-            return new Notification(id, category, urgency, title, message, entityType, entityId, timestamp, isRead, recipientRole, link, createdAt);
+            Notification n = new Notification(id, category, urgency, title, message, entityType, entityId, timestamp, isRead, recipientRole, link, createdAt);
+            n.setInstitutionCode(this.institutionCode);
+            n.setRecipientId(this.recipientId);
+            n.setRecipientEmail(this.recipientEmail);
+            n.setAcknowledged(this.isAcknowledged);
+            n.setAcknowledgedAt(this.acknowledgedAt);
+            n.setAcknowledgedBy(this.acknowledgedBy);
+            n.setActionRequired(this.actionRequired);
+            n.setActionCompleted(this.actionCompleted);
+            n.setActionCompletedAt(this.actionCompletedAt);
+            n.setActionCompletedBy(this.actionCompletedBy);
+            n.setDueDate(this.dueDate);
+            return n;
         }
     }
 }

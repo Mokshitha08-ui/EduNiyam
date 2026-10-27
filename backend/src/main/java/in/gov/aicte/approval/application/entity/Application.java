@@ -96,6 +96,9 @@ public class Application {
     @Column(name = "evc_marked_at")
     private LocalDateTime evcMarkedAt;
 
+    @Column(name = "details_json", columnDefinition = "TEXT")
+    private String detailsJson;
+
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Observation> observations = new ArrayList<>();
 
@@ -419,6 +422,14 @@ public class Application {
         this.evcMarkedAt = evcMarkedAt;
     }
 
+    public String getDetailsJson() {
+        return this.detailsJson;
+    }
+
+    public void setDetailsJson(String detailsJson) {
+        this.detailsJson = detailsJson;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -457,6 +468,7 @@ public class Application {
         private List<RequestedIntake> requestedIntake = new ArrayList<>();
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
+        private String detailsJson;
 
         public Builder() {}
 
@@ -625,6 +637,11 @@ public class Application {
             return this;
         }
 
+        public Builder detailsJson(String detailsJson) {
+            this.detailsJson = detailsJson;
+            return this;
+        }
+
         public Application build() {
             Application app = new Application(id, institutionName, institutionCode, applicationType,
                     programme, region, state, workflowId, currentStage, status, priority,
@@ -639,6 +656,7 @@ public class Application {
             app.setEvcReason(this.evcReason);
             app.setEvcMarkedBy(this.evcMarkedBy);
             app.setEvcMarkedAt(this.evcMarkedAt);
+            app.setDetailsJson(this.detailsJson);
             return app;
         }
     }

@@ -20,6 +20,7 @@ import { PageHeader } from '../components/common/PageHeader';
 import { Button } from '../components/common/Button';
 import { Badge, StatusBadge } from '../components/common/Badge';
 import { Modal } from '../components/common/Modal';
+import { DynamicApplicationWizard } from '../components/applications/DynamicApplicationWizard';
 import { formatDate, getDaysRemaining, isOverdue } from '../utils/dateUtils';
 import { calculateRiskScore } from '../utils/riskScoring';
 
@@ -49,12 +50,9 @@ export const CollegeDashboard = () => {
   const [responseNotes, setResponseNotes] = useState('');
   const [docFile, setDocFile] = useState(null);
 
-  // Multi-step Application Modal State
+  // Dynamic Application Wizard State
   const [isNewAppModalOpen, setIsNewAppModalOpen] = useState(false);
-  const [appStep, setAppStep] = useState(1);
-  const [appType, setAppType] = useState('Increase in Intake / New Course');
-  const [proposedCourse, setProposedCourse] = useState('');
-  const [intakeCount, setIntakeCount] = useState(60);
+  const [isSubmittingApp, setIsSubmittingApp] = useState(false);
 
   const handleOpenResponse = () => {
     setResponseNotes('');
@@ -82,35 +80,30 @@ export const CollegeDashboard = () => {
     alert('Clarification & response successfully submitted to AICTE Scrutiny Cell.');
   };
 
-  const handleStartNewApplication = async (status = 'SUBMITTED') => {
-    if (status === 'SUBMITTED' && !proposedCourse.trim()) {
-      alert('Please enter the proposed course name before formal submission.');
-      return;
-    }
-
-    const payload = {
-      institutionName: targetInstName,
-      institutionCode: targetInstCode,
-      applicationType: appType,
-      programme: 'Engineering & Technology',
-      region: currentUser?.region || 'South-Western',
-      state: 'Karnataka',
-      workflowId: 'WF-FULL',
-      priority: 'NORMAL',
-      status,
-      requestedIntake: proposedCourse ? [{
-        course: proposedCourse.trim(),
-        currentIntake: 0,
-        proposedIntake: Number(intakeCount) || 60
-      }] : []
-    };
-
+  const handleSaveWizardDraft = async (payload) => {
+    setIsSubmittingApp(true);
     try {
       const newApp = await createNewApplication(payload, currentUser);
       setIsNewAppModalOpen(false);
       navigate(`/applications/${newApp.id}`);
     } catch (err) {
-      alert('Error creating application: ' + (err.response?.data?.message || err.message));
+      alert('Error saving draft: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setIsSubmittingApp(false);
+    }
+  };
+
+  const handleSubmitWizardApplication = async (payload) => {
+    setIsSubmittingApp(true);
+    try {
+      const newApp = await createNewApplication(payload, currentUser);
+      setIsNewAppModalOpen(false);
+      alert(`Approval application ${newApp.id} for ${payload.applicationType} successfully lodged into AICTE Regional Scrutiny Queue.`);
+      navigate(`/applications/${newApp.id}`);
+    } catch (err) {
+      alert('Error submitting application: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setIsSubmittingApp(false);
     }
   };
 
@@ -125,10 +118,7 @@ export const CollegeDashboard = () => {
             variant="primary"
             size="sm"
             icon={PlusCircle}
-            onClick={() => {
-              setAppStep(1);
-              setIsNewAppModalOpen(true);
-            }}
+            onClick={() => setIsNewAppModalOpen(true)}
           >
             Start New Application
           </Button>
@@ -334,90 +324,23 @@ export const CollegeDashboard = () => {
         </div>
       </Modal>
 
-      {/* Multi-step New Application Wizard */}
-      <Modal
+      {/* Dynamic Multi-Step Application Wizard */}
+      <DynamicApplicationWizard
         isOpen={isNewAppModalOpen}
         onClose={() => setIsNewAppModalOpen(false)}
-        title="AICTE Institutional Approval Application Wizard"
-        subtitle={`Step ${appStep} of 2 - ${targetInstName}`}
-        maxWidth="max-w-xl"
-        footer={
-          <div className="flex items-center justify-between w-full">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleStartNewApplication('DRAFT')}
-              className="text-amber-800 border-amber-300 hover:bg-amber-50"
-            >
-              Save as Draft
-            </Button>
-
-            <div className="flex items-center gap-2">
-              {appStep > 1 && (
-                <Button variant="outline" size="sm" onClick={() => setAppStep(appStep - 1)}>
-                  Previous
-                </Button>
-              )}
-              {appStep === 1 ? (
-                <Button variant="primary" size="sm" onClick={() => setAppStep(2)}>
-                  Next: Course Details &rarr;
-                </Button>
-              ) : (
-                <Button variant="success" size="sm" onClick={() => handleStartNewApplication('SUBMITTED')}>
-                  Submit Application
-                </Button>
-              )}
-            </div>
-          </div>
-        }
-      >
-        {appStep === 1 ? (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase">Application Category</label>
-              <select
-                value={appType}
-                onChange={(e) => setAppType(e.target.value)}
-                className="mt-1 w-full text-xs p-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-gov-600"
-              >
-                <option value="Extension of Approval (EoA)">Extension of Approval (EoA)</option>
-                <option value="Increase in Intake / New Course">Increase in Intake / New Course</option>
-                <option value="Change of Site / Infrastructure">Change of Site / Infrastructure</option>
-                <option value="Conversion to Co-Ed Institution">Conversion to Co-Ed Institution</option>
-              </select>
-            </div>
-
-            <div className="p-3 bg-slate-50 rounded-lg border text-xs text-slate-600 space-y-1">
-              <p><strong>Applying Institution:</strong> {targetInstName}</p>
-              <p><strong>AICTE Permanent ID:</strong> {targetInstCode}</p>
-              <p><strong>Jurisdiction:</strong> South-Western Regional Office (Bangalore)</p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase">Proposed Course / Programme *</label>
-              <input
-                type="text"
-                value={proposedCourse}
-                onChange={(e) => setProposedCourse(e.target.value)}
-                placeholder="e.g. B.Tech in Artificial Intelligence & Machine Learning"
-                className="mt-1 w-full text-xs p-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-gov-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase">Proposed Intake Seat Capacity</label>
-              <input
-                type="number"
-                value={intakeCount}
-                onChange={(e) => setIntakeCount(e.target.value)}
-                className="mt-1 w-full text-xs p-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-1 focus:ring-gov-600"
-              />
-            </div>
-          </div>
-        )}
-      </Modal>
+        initialData={{
+          institutionName: targetInstName,
+          institutionCode: targetInstCode,
+          region: currentUser?.region || 'South-Western',
+          state: 'Karnataka',
+          applicationType: 'Extension of Approval (EoA)',
+          programme: 'Engineering & Technology',
+        }}
+        onSaveDraft={handleSaveWizardDraft}
+        onSubmitApplication={handleSubmitWizardApplication}
+        currentUser={currentUser}
+        isSubmitting={isSubmittingApp}
+      />
     </div>
   );
 };

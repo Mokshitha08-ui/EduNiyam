@@ -39,6 +39,11 @@ public class ApplicationDto {
     private List<ApplicationDocumentDto> documents;
     private List<TimelineDto> timeline;
     private List<RequestedIntakeDto> requestedIntake;
+    private Integer riskScore;
+    private String riskLevel;
+    private List<String> riskFactors;
+    private String recommendedAction;
+    private String detailsJson;
 
     public ApplicationDto() {
     }
@@ -317,6 +322,46 @@ public class ApplicationDto {
         this.evcMarkedAt = evcMarkedAt;
     }
 
+    public Integer getRiskScore() {
+        return this.riskScore;
+    }
+
+    public void setRiskScore(Integer riskScore) {
+        this.riskScore = riskScore;
+    }
+
+    public String getRiskLevel() {
+        return this.riskLevel;
+    }
+
+    public void setRiskLevel(String riskLevel) {
+        this.riskLevel = riskLevel;
+    }
+
+    public List<String> getRiskFactors() {
+        return this.riskFactors;
+    }
+
+    public void setRiskFactors(List<String> riskFactors) {
+        this.riskFactors = riskFactors;
+    }
+
+    public String getRecommendedAction() {
+        return this.recommendedAction;
+    }
+
+    public void setRecommendedAction(String recommendedAction) {
+        this.recommendedAction = recommendedAction;
+    }
+
+    public String getDetailsJson() {
+        return this.detailsJson;
+    }
+
+    public void setDetailsJson(String detailsJson) {
+        this.detailsJson = detailsJson;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -353,6 +398,11 @@ public class ApplicationDto {
         private List<ApplicationDocumentDto> documents;
         private List<TimelineDto> timeline;
         private List<RequestedIntakeDto> requestedIntake;
+        private Integer riskScore;
+        private String riskLevel;
+        private List<String> riskFactors;
+        private String recommendedAction;
+    private String detailsJson;
 
         public Builder() {}
 
@@ -511,6 +561,31 @@ public class ApplicationDto {
             return this;
         }
 
+        public Builder riskScore(Integer riskScore) {
+            this.riskScore = riskScore;
+            return this;
+        }
+
+        public Builder riskLevel(String riskLevel) {
+            this.riskLevel = riskLevel;
+            return this;
+        }
+
+        public Builder riskFactors(List<String> riskFactors) {
+            this.riskFactors = riskFactors;
+            return this;
+        }
+
+        public Builder recommendedAction(String recommendedAction) {
+            this.recommendedAction = recommendedAction;
+            return this;
+        }
+
+        public Builder detailsJson(String detailsJson) {
+            this.detailsJson = detailsJson;
+            return this;
+        }
+
         public ApplicationDto build() {
             ApplicationDto dto = new ApplicationDto(this.id, this.institutionName, this.institutionCode, this.applicationType, this.programme, this.region, this.state, this.workflowId, this.currentStage, this.status, this.priority, this.assignedOfficer, this.officerRole, this.submissionDate, this.stageStartDate, this.nextDeadline, this.deficiencyCount, this.missingDocCount, this.deficiencyReason, this.observations, this.documents, this.timeline, this.requestedIntake);
             dto.setAssignedOfficerId(this.assignedOfficerId);
@@ -521,6 +596,11 @@ public class ApplicationDto {
             dto.setEvcReason(this.evcReason);
             dto.setEvcMarkedBy(this.evcMarkedBy);
             dto.setEvcMarkedAt(this.evcMarkedAt);
+            dto.setRiskScore(this.riskScore);
+            dto.setRiskLevel(this.riskLevel);
+            dto.setRiskFactors(this.riskFactors);
+            dto.setRecommendedAction(this.recommendedAction);
+            dto.setDetailsJson(this.detailsJson);
             return dto;
         }
     }
@@ -541,6 +621,84 @@ public class ApplicationDto {
         List<RequestedIntakeDto> intakes = entity.getRequestedIntake() != null
                 ? entity.getRequestedIntake().stream().map(RequestedIntakeDto::fromEntity).collect(Collectors.toList())
                 : Collections.emptyList();
+
+        // Calculate explainable risk score & factors deterministically (Features 70-76)
+        int score = 0;
+        List<String> factors = new java.util.ArrayList<>();
+        LocalDate today = LocalDate.now();
+        LocalDate deadline = entity.getNextDeadline();
+        int daysRemaining = 15;
+        boolean isOverdue = false;
+
+        String appStatus = entity.getStatus() != null ? entity.getStatus() : "PENDING";
+        if ("APPROVED".equalsIgnoreCase(appStatus) || "REJECTED".equalsIgnoreCase(appStatus)) {
+            score = 0;
+            factors.add("Application workflow finalized (" + appStatus + ")");
+        } else {
+            if (deadline != null) {
+                long diff = java.time.temporal.ChronoUnit.DAYS.between(today, deadline);
+                daysRemaining = (int) diff;
+                if (diff < 0) {
+                    isOverdue = true;
+                    score += 50;
+                    factors.add("Target statutory deadline breached by " + Math.abs(diff) + " day(s)");
+                } else if (diff <= 3) {
+                    score += 35;
+                    factors.add("Critical statutory deadline: only " + diff + " day(s) remaining");
+                } else if (diff <= 7) {
+                    score += 20;
+                    factors.add("Approaching statutory deadline within " + diff + " day(s)");
+                }
+            }
+            if (entity.getSubmissionDate() != null) {
+                long daysElapsed = Math.max(0, java.time.temporal.ChronoUnit.DAYS.between(entity.getSubmissionDate(), today));
+                int percent = (int) ((daysElapsed * 100) / 30);
+                if (percent >= 100) {
+                    score += 25;
+                    factors.add("SLA timeline fully consumed (" + daysElapsed + "/30 days)");
+                } else if (percent >= 70) {
+                    score += 15;
+                    factors.add("Elevated timeline consumption (" + percent + "% of standard 30-day SLA)");
+                }
+            }
+            if (entity.getDeficiencyCount() >= 2) {
+                score += 25;
+                factors.add("Multiple deficiency return cycles (" + entity.getDeficiencyCount() + " cycles recorded)");
+            } else if (entity.getDeficiencyCount() == 1) {
+                score += 10;
+                factors.add("1 previous deficiency return cycle issued to institution");
+            }
+            if (entity.getMissingDocCount() > 0) {
+                score += Math.min(20, entity.getMissingDocCount() * 10);
+                factors.add(entity.getMissingDocCount() + " mandatory compliance document(s) pending");
+            }
+        }
+
+        String riskLevel = "LOW";
+        if ("APPROVED".equalsIgnoreCase(appStatus) || "REJECTED".equalsIgnoreCase(appStatus)) {
+            riskLevel = "RESOLVED";
+        } else if (score >= 45) {
+            riskLevel = "HIGH";
+        } else if (score >= 25) {
+            riskLevel = "MEDIUM";
+        }
+
+        if (factors.isEmpty()) {
+            factors.add("On-track within standard processing timeline");
+        }
+
+        String recommendedAction;
+        if (isOverdue) {
+            recommendedAction = "Immediate officer intervention required; prioritize scrutiny or convene review panel.";
+        } else if (entity.getDeficiencyCount() >= 1) {
+            recommendedAction = "Follow up with institution representative to resolve pending deficiencies.";
+        } else if (daysRemaining <= 3) {
+            recommendedAction = "Expedite scrutiny and document verification before statutory deadline expiration.";
+        } else if (entity.getMissingDocCount() > 0) {
+            recommendedAction = "Prompt applicant institution to upload missing mandatory attachments.";
+        } else {
+            recommendedAction = "Maintain standard monitoring timeline.";
+        }
 
         return ApplicationDto.builder()
                 .id(entity.getId())
@@ -574,6 +732,11 @@ public class ApplicationDto {
                 .documents(docs)
                 .timeline(tl)
                 .requestedIntake(intakes)
+                .riskScore(score)
+                .riskLevel(riskLevel)
+                .riskFactors(factors)
+                .recommendedAction(recommendedAction)
+                .detailsJson(entity.getDetailsJson())
                 .build();
     }
 }

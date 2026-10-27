@@ -10,6 +10,7 @@ public class InstitutionRegisterRequest {
     @NotBlank(message = "Official Institution Name is required")
     private String institutionName;
 
+    @NotBlank(message = "College ID / Institution Code is required")
     private String institutionCode;
 
     @NotBlank(message = "Institution Type is required")

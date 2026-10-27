@@ -50,6 +50,9 @@ export const StatusBadge = ({ status }) => {
   switch (status) {
     case 'APPROVED':
     case 'VERIFIED':
+    case 'COMPLIANT':
+    case 'VALID':
+    case 'COMPLETED':
     case 'CLEARED':
     case 'INSPECTION_COMPLETED':
       return <Badge variant="success" dot>{status.replace(/_/g, ' ')}</Badge>;
@@ -58,19 +61,27 @@ export const StatusBadge = ({ status }) => {
     case 'PENDING_SCRUTINY':
     case 'PENDING_APPROVAL':
     case 'PENDING_VERIFICATION':
+    case 'PENDING_REVIEW':
+    case 'PENDING_SUBMISSION':
+    case 'EXPIRING_SOON':
+    case 'DUE_SOON':
     case 'SCHEDULED':
     case 'EVC_SCHEDULED':
       return <Badge variant="warning" dot>{status.replace(/_/g, ' ')}</Badge>;
 
     case 'DEFICIENCY_NOTIFIED':
     case 'OVERDUE':
+    case 'EXPIRED':
     case 'DELAYED':
     case 'REJECTED':
+    case 'NON_COMPLIANT':
+    case 'CORRECTION_REQUIRED':
     case 'ACTION_REQUIRED':
       return <Badge variant="danger" dot>{status.replace(/_/g, ' ')}</Badge>;
 
     case 'RESUBMITTED':
     case 'SUBMITTED':
+    case 'UPCOMING':
       return <Badge variant="primary" dot>{status.replace(/_/g, ' ')}</Badge>;
 
     case 'DRAFT':

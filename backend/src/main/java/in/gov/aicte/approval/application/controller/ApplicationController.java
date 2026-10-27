@@ -37,6 +37,12 @@ public class ApplicationController {
         return ResponseEntity.ok(applicationService.getAllApplications(page, size, search, region, stage, status, priority));
     }
 
+    @GetMapping("/risk-queue")
+    @Operation(summary = "Get applications ranked by transparent rule-based delay risk")
+    public ResponseEntity<List<ApplicationDto>> getRiskQueue() {
+        return ResponseEntity.ok(applicationService.getRiskPrioritizedQueue());
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get detailed application profile by ID")
     public ResponseEntity<ApplicationDto> getApplicationById(@PathVariable String id) {

@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: in.gov.aicte.approval.application.ApplicationServiceTest
--------------------------------------------------------------------------------
-Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.933 s -- in in.gov.aicte.approval.application.ApplicationServiceTest

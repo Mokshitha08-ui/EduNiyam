@@ -11,24 +11,49 @@ public class Escalation {
     @Id
     @Column(name = "id", length = 64)
     private String id;
+
     @Column(name = "entity_id", nullable = false, length = 64)
     private String entityId;
+
+    @Column(name = "application_id", length = 64)
+    private String applicationId;
+
     @Column(name = "institution_name", nullable = false, length = 255)
     private String institutionName;
+
     @Column(name = "level", nullable = false, length = 32)
     private String level;
+
     @Column(name = "level_title", nullable = false, length = 128)
     private String levelTitle;
+
     @Column(name = "recipient", nullable = false, length = 128)
     private String recipient;
+
     @Column(name = "reason", nullable = false, columnDefinition = "TEXT")
     private String reason;
+
     @Column(name = "triggered_at", nullable = false, length = 64)
     private String triggeredAt;
+
     @Column(name = "status", nullable = false, length = 32)
     private String status = "ACTIVE";
+
     @Column(name = "acknowledged_by", length = 128)
     private String acknowledgedBy;
+
+    @Column(name = "acknowledged_at")
+    private LocalDateTime acknowledgedAt;
+
+    @Column(name = "resolved_at")
+    private LocalDateTime resolvedAt;
+
+    @Column(name = "resolved_by", length = 128)
+    private String resolvedBy;
+
+    @Column(name = "resolution_notes", columnDefinition = "TEXT")
+    private String resolutionNotes;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -36,7 +61,9 @@ public class Escalation {
     public Escalation() {
     }
 
-    public Escalation(String id, String entityId, String institutionName, String level, String levelTitle, String recipient, String reason, String triggeredAt, String status, String acknowledgedBy, LocalDateTime createdAt) {
+    public Escalation(String id, String entityId, String institutionName, String level, String levelTitle,
+                      String recipient, String reason, String triggeredAt, String status,
+                      String acknowledgedBy, LocalDateTime createdAt) {
         this.id = id;
         this.entityId = entityId;
         this.institutionName = institutionName;
@@ -64,6 +91,14 @@ public class Escalation {
 
     public void setEntityId(String entityId) {
         this.entityId = entityId;
+    }
+
+    public String getApplicationId() {
+        return applicationId;
+    }
+
+    public void setApplicationId(String applicationId) {
+        this.applicationId = applicationId;
     }
 
     public String getInstitutionName() {
@@ -130,6 +165,38 @@ public class Escalation {
         this.acknowledgedBy = acknowledgedBy;
     }
 
+    public LocalDateTime getAcknowledgedAt() {
+        return acknowledgedAt;
+    }
+
+    public void setAcknowledgedAt(LocalDateTime acknowledgedAt) {
+        this.acknowledgedAt = acknowledgedAt;
+    }
+
+    public LocalDateTime getResolvedAt() {
+        return resolvedAt;
+    }
+
+    public void setResolvedAt(LocalDateTime resolvedAt) {
+        this.resolvedAt = resolvedAt;
+    }
+
+    public String getResolvedBy() {
+        return resolvedBy;
+    }
+
+    public void setResolvedBy(String resolvedBy) {
+        this.resolvedBy = resolvedBy;
+    }
+
+    public String getResolutionNotes() {
+        return resolutionNotes;
+    }
+
+    public void setResolutionNotes(String resolutionNotes) {
+        this.resolutionNotes = resolutionNotes;
+    }
+
     public LocalDateTime getCreatedAt() {
         return this.createdAt;
     }
@@ -145,6 +212,7 @@ public class Escalation {
     public static class Builder {
         private String id;
         private String entityId;
+        private String applicationId;
         private String institutionName;
         private String level;
         private String levelTitle;
@@ -153,6 +221,10 @@ public class Escalation {
         private String triggeredAt;
         private String status = "ACTIVE";
         private String acknowledgedBy;
+        private LocalDateTime acknowledgedAt;
+        private LocalDateTime resolvedAt;
+        private String resolvedBy;
+        private String resolutionNotes;
         private LocalDateTime createdAt;
 
         public Builder() {}
@@ -164,6 +236,11 @@ public class Escalation {
 
         public Builder entityId(String entityId) {
             this.entityId = entityId;
+            return this;
+        }
+
+        public Builder applicationId(String applicationId) {
+            this.applicationId = applicationId;
             return this;
         }
 
@@ -207,14 +284,39 @@ public class Escalation {
             return this;
         }
 
+        public Builder acknowledgedAt(LocalDateTime acknowledgedAt) {
+            this.acknowledgedAt = acknowledgedAt;
+            return this;
+        }
+
+        public Builder resolvedAt(LocalDateTime resolvedAt) {
+            this.resolvedAt = resolvedAt;
+            return this;
+        }
+
+        public Builder resolvedBy(String resolvedBy) {
+            this.resolvedBy = resolvedBy;
+            return this;
+        }
+
+        public Builder resolutionNotes(String resolutionNotes) {
+            this.resolutionNotes = resolutionNotes;
+            return this;
+        }
+
         public Builder createdAt(LocalDateTime createdAt) {
             this.createdAt = createdAt;
             return this;
         }
 
         public Escalation build() {
-            return new Escalation(this.id, this.entityId, this.institutionName, this.level, this.levelTitle, this.recipient, this.reason, this.triggeredAt, this.status, this.acknowledgedBy, this.createdAt);
+            Escalation esc = new Escalation(this.id, this.entityId, this.institutionName, this.level, this.levelTitle, this.recipient, this.reason, this.triggeredAt, this.status, this.acknowledgedBy, this.createdAt);
+            esc.setApplicationId(this.applicationId);
+            esc.setAcknowledgedAt(this.acknowledgedAt);
+            esc.setResolvedAt(this.resolvedAt);
+            esc.setResolvedBy(this.resolvedBy);
+            esc.setResolutionNotes(this.resolutionNotes);
+            return esc;
         }
     }
-
 }

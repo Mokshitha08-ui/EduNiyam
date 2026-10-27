@@ -1,11 +1,13 @@
 package in.gov.aicte.approval.notification.dto;
 
 import in.gov.aicte.approval.notification.entity.Escalation;
+import java.time.LocalDateTime;
 
 public class EscalationDto {
 
     private String id;
     private String entityId;
+    private String applicationId;
     private String institutionName;
     private String level;
     private String levelTitle;
@@ -14,11 +16,16 @@ public class EscalationDto {
     private String triggeredAt;
     private String status;
     private String acknowledgedBy;
+    private LocalDateTime acknowledgedAt;
+    private LocalDateTime resolvedAt;
+    private String resolvedBy;
+    private String resolutionNotes;
 
     public EscalationDto() {
     }
 
-    public EscalationDto(String id, String entityId, String institutionName, String level, String levelTitle, String recipient, String reason, String triggeredAt, String status, String acknowledgedBy) {
+    public EscalationDto(String id, String entityId, String institutionName, String level, String levelTitle,
+                         String recipient, String reason, String triggeredAt, String status, String acknowledgedBy) {
         this.id = id;
         this.entityId = entityId;
         this.institutionName = institutionName;
@@ -45,6 +52,14 @@ public class EscalationDto {
 
     public void setEntityId(String entityId) {
         this.entityId = entityId;
+    }
+
+    public String getApplicationId() {
+        return applicationId;
+    }
+
+    public void setApplicationId(String applicationId) {
+        this.applicationId = applicationId;
     }
 
     public String getInstitutionName() {
@@ -111,6 +126,38 @@ public class EscalationDto {
         this.acknowledgedBy = acknowledgedBy;
     }
 
+    public LocalDateTime getAcknowledgedAt() {
+        return acknowledgedAt;
+    }
+
+    public void setAcknowledgedAt(LocalDateTime acknowledgedAt) {
+        this.acknowledgedAt = acknowledgedAt;
+    }
+
+    public LocalDateTime getResolvedAt() {
+        return resolvedAt;
+    }
+
+    public void setResolvedAt(LocalDateTime resolvedAt) {
+        this.resolvedAt = resolvedAt;
+    }
+
+    public String getResolvedBy() {
+        return resolvedBy;
+    }
+
+    public void setResolvedBy(String resolvedBy) {
+        this.resolvedBy = resolvedBy;
+    }
+
+    public String getResolutionNotes() {
+        return resolutionNotes;
+    }
+
+    public void setResolutionNotes(String resolutionNotes) {
+        this.resolutionNotes = resolutionNotes;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -118,6 +165,7 @@ public class EscalationDto {
     public static class Builder {
         private String id;
         private String entityId;
+        private String applicationId;
         private String institutionName;
         private String level;
         private String levelTitle;
@@ -126,6 +174,10 @@ public class EscalationDto {
         private String triggeredAt;
         private String status;
         private String acknowledgedBy;
+        private LocalDateTime acknowledgedAt;
+        private LocalDateTime resolvedAt;
+        private String resolvedBy;
+        private String resolutionNotes;
 
         public Builder() {}
 
@@ -136,6 +188,11 @@ public class EscalationDto {
 
         public Builder entityId(String entityId) {
             this.entityId = entityId;
+            return this;
+        }
+
+        public Builder applicationId(String applicationId) {
+            this.applicationId = applicationId;
             return this;
         }
 
@@ -179,8 +236,34 @@ public class EscalationDto {
             return this;
         }
 
+        public Builder acknowledgedAt(LocalDateTime acknowledgedAt) {
+            this.acknowledgedAt = acknowledgedAt;
+            return this;
+        }
+
+        public Builder resolvedAt(LocalDateTime resolvedAt) {
+            this.resolvedAt = resolvedAt;
+            return this;
+        }
+
+        public Builder resolvedBy(String resolvedBy) {
+            this.resolvedBy = resolvedBy;
+            return this;
+        }
+
+        public Builder resolutionNotes(String resolutionNotes) {
+            this.resolutionNotes = resolutionNotes;
+            return this;
+        }
+
         public EscalationDto build() {
-            return new EscalationDto(this.id, this.entityId, this.institutionName, this.level, this.levelTitle, this.recipient, this.reason, this.triggeredAt, this.status, this.acknowledgedBy);
+            EscalationDto dto = new EscalationDto(this.id, this.entityId, this.institutionName, this.level, this.levelTitle, this.recipient, this.reason, this.triggeredAt, this.status, this.acknowledgedBy);
+            dto.setApplicationId(this.applicationId);
+            dto.setAcknowledgedAt(this.acknowledgedAt);
+            dto.setResolvedAt(this.resolvedAt);
+            dto.setResolvedBy(this.resolvedBy);
+            dto.setResolutionNotes(this.resolutionNotes);
+            return dto;
         }
     }
 
@@ -188,6 +271,7 @@ public class EscalationDto {
         return EscalationDto.builder()
                 .id(entity.getId())
                 .entityId(entity.getEntityId())
+                .applicationId(entity.getApplicationId())
                 .institutionName(entity.getInstitutionName())
                 .level(entity.getLevel())
                 .levelTitle(entity.getLevelTitle())
@@ -196,6 +280,10 @@ public class EscalationDto {
                 .triggeredAt(entity.getTriggeredAt())
                 .status(entity.getStatus())
                 .acknowledgedBy(entity.getAcknowledgedBy())
+                .acknowledgedAt(entity.getAcknowledgedAt())
+                .resolvedAt(entity.getResolvedAt())
+                .resolvedBy(entity.getResolvedBy())
+                .resolutionNotes(entity.getResolutionNotes())
                 .build();
     }
 }

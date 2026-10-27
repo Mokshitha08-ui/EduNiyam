@@ -27,9 +27,10 @@ export const AuthProvider = ({ children }) => {
   const loginInstitution = async ({ institutionCode, email, password }, isLiveMode = false) => {
     setAuthError(null);
     setIsAuthenticating(true);
+    const isLive = isLiveMode || (typeof window !== 'undefined' && localStorage.getItem('aicte_data_mode') === 'live');
 
     try {
-      if (isLiveMode) {
+      if (isLive) {
         try {
           const response = await authApi.loginInstitution({ institutionCode, email, password });
           if (response.data && response.data.token) {
@@ -68,6 +69,13 @@ export const AuthProvider = ({ children }) => {
       const cleanEmail = (email || '').trim().toLowerCase();
       const cleanCode = (institutionCode || '').trim();
 
+      if (!cleanCode) {
+        const msg = 'Please enter your College ID / Institution Code (e.g. 1-34981275).';
+        setAuthError(msg);
+        setIsAuthenticating(false);
+        return { success: false, error: msg };
+      }
+
       // Check registered demo institutions first
       const storedRegistrations = JSON.parse(localStorage.getItem('aicte_demo_registered_institutions') || '[]');
       const foundDemoRegistration = storedRegistrations.find(
@@ -76,7 +84,7 @@ export const AuthProvider = ({ children }) => {
 
       if (foundDemoRegistration) {
         if (foundDemoRegistration.institutionCode !== cleanCode) {
-          const msg = 'Institution Code / College ID does not match the registered representative email.';
+          const msg = 'College ID / Institution Code does not match the registered representative email.';
           setAuthError(msg);
           setIsAuthenticating(false);
           return { success: false, error: msg };
@@ -131,7 +139,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (collegeUser.institutionCode !== cleanCode) {
-        const msg = 'Institution Code / College ID does not match the registered representative email.';
+        const msg = 'College ID / Institution Code does not match the registered representative email.';
         setAuthError(msg);
         setIsAuthenticating(false);
         return { success: false, error: msg };
@@ -167,9 +175,10 @@ export const AuthProvider = ({ children }) => {
   const registerInstitution = async (formData, isLiveMode = false) => {
     setAuthError(null);
     setIsAuthenticating(true);
+    const isLive = isLiveMode || (typeof window !== 'undefined' && localStorage.getItem('aicte_data_mode') === 'live');
 
     try {
-      if (isLiveMode) {
+      if (isLive) {
         try {
           const res = await authApi.registerInstitution(formData);
           setIsAuthenticating(false);
@@ -186,6 +195,13 @@ export const AuthProvider = ({ children }) => {
       const cleanEmail = (formData.email || '').trim().toLowerCase();
       const cleanCode = (formData.institutionCode || '').trim();
 
+      if (!cleanCode) {
+        const msg = 'College ID / Institution Code is required (e.g. 1-34981275).';
+        setAuthError(msg);
+        setIsAuthenticating(false);
+        return { success: false, error: msg };
+      }
+
       const storedRegistrations = JSON.parse(localStorage.getItem('aicte_demo_registered_institutions') || '[]');
 
       if (
@@ -198,20 +214,17 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: msg };
       }
 
-      let finalCode = cleanCode;
-      if (finalCode) {
-        if (
-          INITIAL_USERS.some((u) => u.institutionCode === finalCode) ||
-          storedRegistrations.some((r) => r.institutionCode === finalCode)
-        ) {
-          const msg = `Institution Code / College ID is already registered: ${finalCode}`;
-          setAuthError(msg);
-          setIsAuthenticating(false);
-          return { success: false, error: msg };
-        }
-      } else {
-        finalCode = `1-${Math.floor(10000000 + Math.random() * 90000000)}`;
+      if (
+        INITIAL_USERS.some((u) => u.institutionCode === cleanCode) ||
+        storedRegistrations.some((r) => r.institutionCode === cleanCode)
+      ) {
+        const msg = `College ID / Institution Code is already registered: ${cleanCode}`;
+        setAuthError(msg);
+        setIsAuthenticating(false);
+        return { success: false, error: msg };
       }
+
+      const finalCode = cleanCode;
 
       const newRecord = {
         ...formData,
@@ -249,9 +262,10 @@ export const AuthProvider = ({ children }) => {
   const loginStaff = async ({ email, password, requestedRole }, isLiveMode = false) => {
     setAuthError(null);
     setIsAuthenticating(true);
+    const isLive = isLiveMode || (typeof window !== 'undefined' && localStorage.getItem('aicte_data_mode') === 'live');
 
     try {
-      if (isLiveMode) {
+      if (isLive) {
         try {
           const response = await authApi.loginStaff({ email, password, requestedRole });
           if (response.data && response.data.token) {
@@ -378,9 +392,10 @@ export const AuthProvider = ({ children }) => {
   const requestOfficerAccess = async (formData, isLiveMode = false) => {
     setAuthError(null);
     setIsAuthenticating(true);
+    const isLive = isLiveMode || (typeof window !== 'undefined' && localStorage.getItem('aicte_data_mode') === 'live');
 
     try {
-      if (isLiveMode) {
+      if (isLive) {
         try {
           const res = await authApi.createOfficerAccessRequest(formData);
           setIsAuthenticating(false);

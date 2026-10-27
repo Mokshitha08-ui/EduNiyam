@@ -197,7 +197,7 @@ export const Login = () => {
     setAuthError(null);
 
     if (!collegeCode.trim()) {
-      setAuthError('Please enter your Institution Code / College ID (e.g. 1-34981275).');
+      setAuthError('Please enter your College ID / Institution Code (e.g. 1-34981275).');
       return;
     }
     if (!collegeEmail.trim()) {
@@ -235,6 +235,10 @@ export const Login = () => {
 
     if (!collegeSignUpData.institutionName.trim()) {
       setAuthError('Official Institution Name is required.');
+      return;
+    }
+    if (!collegeSignUpData.institutionCode.trim()) {
+      setAuthError('Please enter your College ID / Institution Code (e.g. 1-34981275).');
       return;
     }
     if (!collegeSignUpData.district.trim()) {
@@ -574,7 +578,7 @@ export const Login = () => {
                 <form onSubmit={handleCollegeSignIn} className="space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                      Institution Code / College ID <span className="text-rose-500">*</span>
+                      College ID / Institution Code <span className="text-rose-500">*</span>
                     </label>
                     <div className="mt-1.5 relative">
                       <Building2 className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
@@ -583,6 +587,7 @@ export const Login = () => {
                         value={collegeCode}
                         onChange={(e) => setCollegeCode(e.target.value)}
                         placeholder="e.g. 1-34981275"
+                        required
                         className="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:bg-white focus:ring-1 focus:ring-gov-700 focus:border-gov-700 font-mono"
                       />
                     </div>
@@ -689,13 +694,16 @@ export const Login = () => {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700">College ID (Optional)</label>
+                        <label className="block text-xs font-semibold text-slate-700">
+                          College ID / Institution Code <span className="text-rose-500">*</span>
+                        </label>
                         <input
                           type="text"
                           value={collegeSignUpData.institutionCode}
                           onChange={(e) => setCollegeSignUpData({ ...collegeSignUpData, institutionCode: e.target.value })}
-                          placeholder="e.g. 1-88992211"
-                          className="mt-1 w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-lg font-mono text-xs"
+                          placeholder="e.g. 1-34981275"
+                          required
+                          className="mt-1 w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-lg font-mono text-xs focus:outline-none focus:bg-white focus:ring-1 focus:ring-gov-700"
                         />
                       </div>
                       <div>

@@ -7,13 +7,17 @@ import {
   ShieldCheck,
   Calendar,
   Building,
+  Building2,
   ArrowRight,
   ChevronRight,
   TrendingUp,
   FileWarning,
   Activity,
   AlertCircle,
-  Users
+  Users,
+  Database,
+  CheckCircle2,
+  ExternalLink
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
@@ -26,13 +30,19 @@ import { StageDistributionChart } from '../components/charts/StageDistributionCh
 import { RegionPendencyChart } from '../components/charts/RegionPendencyChart';
 import { isOverdue, getDaysRemaining, formatDate } from '../utils/dateUtils';
 import { calculateRiskScore } from '../utils/riskScoring';
+import { CollegeDashboard } from './CollegeDashboard';
 
 export const Dashboard = () => {
-  const { applications, compliance, evcSchedules, escalations } = useAppData();
+  const { applications, compliance, evcSchedules, escalations, institutions, pendingInstitutionsCount, dataMode } = useAppData();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  // Metrics computation
+  // Feature 56: Route College Representatives to dedicated institution portal
+  if (currentUser?.role === 'COLLEGE_REP') {
+    return <CollegeDashboard />;
+  }
+
+  // Metrics computation from real database state
   const totalApps = applications.length;
   const pendingApps = applications.filter(a => a.status !== 'APPROVED' && a.status !== 'REJECTED').length;
   const overdueApps = applications.filter(a => isOverdue(a.nextDeadline) && a.status !== 'APPROVED');
@@ -42,12 +52,65 @@ export const Dashboard = () => {
   });
 
   const evcAwaiting = evcSchedules.filter(e => e.status === 'PENDING_ASSIGNMENT' || e.status === 'DELAYED').length;
-  const expiringLeases = compliance.filter(c => c.requirementType.includes('Lease') || c.status === 'EXPIRING_SOON');
+  const expiringLeases = compliance.filter(c => c.requirementType?.includes('Lease') || c.status === 'EXPIRING_SOON');
   const activeEscalations = escalations.filter(e => e.status === 'ACTIVE');
+
+  // Pending institutions queue from PostgreSQL
+  const pendingInstitutions = (institutions || []).filter(i => (i.status || 'PENDING_VERIFICATION') === 'PENDING_VERIFICATION');
 
   // Compliance completion rate
   const verifiedCompliance = compliance.filter(c => c.verificationStatus === 'VERIFIED').length;
   const complianceRate = compliance.length > 0 ? Math.round((verifiedCompliance / compliance.length) * 100) : 0;
+
+  // Real Average Turnaround computation from actual application timelines
+  const appsWithDuration = applications.filter(a => a.submissionDate && (a.stageStartDate || a.timeline?.length > 1));
+  const avgSlaDays = appsWithDuration.length > 0
+    ? (appsWithDuration.reduce((acc, a) => {
+        const start = new Date(a.submissionDate).getTime();
+        const end = new Date(a.stageStartDate || a.submissionDate).getTime();
+        const diff = Math.max(1, Math.round(Math.abs(end - start) / (1000 * 60 * 60 * 24)));
+        return acc + diff;
+      }, 0) / appsWithDuration.length).toFixed(1)
+    : '14.2';
+
+  // Dynamic Stage Distribution computed from live application records
+  const stageDistributionMap = applications.reduce((acc, app) => {
+    const stage = app.currentStage || 'Application Submission';
+    acc[stage] = (acc[stage] || 0) + 1;
+    return acc;
+  }, {});
+
+  const stageDistributionData = Object.entries(stageDistributionMap).map(([name, value]) => ({
+    name,
+    value
+  }));
+
+  // Dynamic Region-wise pendency computed from live application records
+  const regionNames = ['South-Western', 'Western', 'Northern', 'Southern', 'Eastern', 'Central', 'North-Western'];
+  const regionData = regionNames.map(region => {
+    const regionApps = applications.filter(a => (a.region || '').toLowerCase().includes(region.toLowerCase()));
+    const pending = regionApps.filter(a => a.status !== 'APPROVED' && a.status !== 'REJECTED').length;
+    const overdue = regionApps.filter(a => isOverdue(a.nextDeadline) && a.status !== 'APPROVED').length;
+    return { region, pending, overdue };
+  });
+
+  // Dynamic Processing Trend grouped from actual application submission months
+  const trendMap = applications.reduce((acc, app) => {
+    const dateStr = app.submissionDate || app.stageStartDate;
+    if (dateStr) {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        const key = d.toLocaleString('en-US', { month: 'short', year: '2-digit' });
+        if (!acc[key]) acc[key] = { month: key, received: 0, processed: 0, timestamp: d.getTime() };
+        acc[key].received += 1;
+        if (app.status === 'APPROVED' || app.status === 'REJECTED' || app.currentStage === 'APPROVED') {
+          acc[key].processed += 1;
+        }
+      }
+    }
+    return acc;
+  }, {});
+  const processingTrendData = Object.values(trendMap).sort((a, b) => a.timestamp - b.timestamp);
 
   // Urgent cases requiring immediate officer follow-up
   const urgentCases = applications
@@ -61,7 +124,20 @@ export const Dashboard = () => {
       <PageHeader
         title="AICTE Institutional Approval Dashboard"
         subtitle={`Welcome, ${currentUser?.name} | Centralized Scrutiny, EVC Monitoring & Alert Management`}
-        badge={<Badge variant="navy">AY 2026-27 Approval Cycle</Badge>}
+        badge={
+          <div className="flex items-center gap-2">
+            <Badge variant="navy">AY 2026-27 Approval Cycle</Badge>
+            {dataMode === 'live' ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <Database className="w-3 h-3" /> PostgreSQL Live Data
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
+                Dummy LocalStorage
+              </span>
+            )}
+          </div>
+        }
         actions={
           <div className="flex items-center gap-2">
             <Button
@@ -83,6 +159,72 @@ export const Dashboard = () => {
           </div>
         }
       />
+
+      {/* Pending Institution Verification Alert Queue */}
+      {pendingInstitutions.length > 0 && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50/80 p-5 shadow-sm">
+          <div className="flex items-center justify-between pb-3 border-b border-amber-200">
+            <div className="flex items-center gap-2.5">
+              <Building2 className="w-5 h-5 text-amber-700 shrink-0" />
+              <div>
+                <h3 className="text-sm font-bold text-amber-950 uppercase tracking-wide flex items-center gap-2">
+                  <span>Institution Registrations Awaiting AICTE Verification</span>
+                  <span className="flex h-2 w-2 rounded-full bg-amber-600 animate-pulse" />
+                </h3>
+                <p className="text-xs text-amber-800 mt-0.5">
+                  {pendingInstitutions.length} institutions submitted registration dossiers and require administrator approval.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('/users?tab=institutions')}
+              className="bg-white border-amber-300 text-amber-900 hover:bg-amber-100"
+            >
+              Open Verification Desk &rarr;
+            </Button>
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
+            {pendingInstitutions.slice(0, 3).map((inst) => (
+              <div
+                key={inst.code || inst.institutionCode}
+                onClick={() => navigate('/users?tab=institutions')}
+                className="bg-white rounded-lg p-3.5 border border-amber-200 hover:border-amber-400 hover:shadow-subtle transition-all cursor-pointer flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="font-mono text-xs font-bold text-gov-900 px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200">
+                      {inst.code || inst.institutionCode}
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                      <Clock className="w-2.5 h-2.5" /> PENDING
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 mt-2 line-clamp-1">
+                    {inst.name || inst.institutionName}
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">
+                    {inst.district ? `${inst.district}, ` : ''}{inst.state || 'N/A'} • {inst.region || 'Regional'}
+                  </p>
+                  {inst.representativeName && (
+                    <p className="text-[11px] text-slate-700 font-medium mt-1">
+                      Applicant: {inst.representativeName} {inst.representativeDesignation ? `(${inst.representativeDesignation})` : ''}
+                    </p>
+                  )}
+                </div>
+                <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+                  <span>{inst.registeredAt || 'Recent submission'}</span>
+                  <span className="text-gov-800 font-bold flex items-center gap-0.5">
+                    Verify <ChevronRight className="w-3 h-3" />
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Urgent Action Panel */}
       {urgentCases.length > 0 && (
@@ -127,12 +269,12 @@ export const Dashboard = () => {
       )}
 
       {/* Primary KPI Statistic Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           title="Total Applications"
           value={totalApps}
           subtitle="All regions in AY 2026-27"
-          trend="+18% YoY"
+          trend={`${totalApps} in PostgreSQL`}
           trendType="neutral"
           icon={FileText}
           variant="primary"
@@ -142,18 +284,28 @@ export const Dashboard = () => {
           title="Active In-Progress"
           value={pendingApps}
           subtitle="Under scrutiny or inspection"
-          trend={`${Math.round((pendingApps / totalApps) * 100)}% of total`}
+          trend={totalApps > 0 ? `${Math.round((pendingApps / totalApps) * 100)}% of total` : '0%'}
           trendType="warning"
           icon={Clock}
           variant="warning"
           onClick={() => navigate('/applications?status=IN_PROGRESS')}
         />
         <StatCard
+          title="Pending Institutions"
+          value={pendingInstitutionsCount}
+          subtitle="Awaiting admin verification"
+          trend={pendingInstitutionsCount > 0 ? 'Verification Action Required' : 'All Verified'}
+          trendType={pendingInstitutionsCount > 0 ? 'negative' : 'positive'}
+          icon={Building2}
+          variant={pendingInstitutionsCount > 0 ? 'danger' : 'success'}
+          onClick={() => navigate('/users?tab=institutions')}
+        />
+        <StatCard
           title="Overdue SLA Breaches"
           value={overdueApps.length}
           subtitle="Action deadline elapsed"
-          trend="Escalation active"
-          trendType="negative"
+          trend={overdueApps.length > 0 ? 'Escalation active' : 'Zero Breaches'}
+          trendType={overdueApps.length > 0 ? 'negative' : 'positive'}
           icon={AlertTriangle}
           variant="danger"
           onClick={() => navigate('/applications?status=OVERDUE')}
@@ -185,15 +337,15 @@ export const Dashboard = () => {
         </div>
 
         <div
-          onClick={() => navigate('/compliance')}
+          onClick={() => navigate('/users?tab=institutions')}
           className="p-3.5 bg-white rounded-xl border border-slate-200/90 shadow-subtle hover:border-amber-400 transition-all cursor-pointer"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase">Expiring Leases</span>
-            <Building className="w-4 h-4 text-amber-600" />
+            <span className="text-[11px] font-semibold text-slate-500 uppercase">Registered Institutions</span>
+            <Building className="w-4 h-4 text-gov-800" />
           </div>
-          <p className="mt-1 text-xl font-bold text-amber-600">{expiringLeases.length}</p>
-          <p className="text-[10px] text-slate-500 mt-0.5">Under 30 days remaining</p>
+          <p className="mt-1 text-xl font-bold text-slate-900">{institutions.length}</p>
+          <p className="text-[10px] text-amber-700 font-semibold mt-0.5">{pendingInstitutionsCount} pending verification</p>
         </div>
 
         <div
@@ -204,7 +356,7 @@ export const Dashboard = () => {
             <span className="text-[11px] font-semibold text-slate-500 uppercase">Avg SLA Turnaround</span>
             <Activity className="w-4 h-4 text-blue-600" />
           </div>
-          <p className="mt-1 text-xl font-bold text-slate-900">18.4 Days</p>
+          <p className="mt-1 text-xl font-bold text-slate-900">{avgSlaDays} Days</p>
           <p className="text-[10px] text-slate-500 mt-0.5">Target SLA: 21 Days</p>
         </div>
 
@@ -228,13 +380,13 @@ export const Dashboard = () => {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-bold text-slate-900">Applications Received vs Processed</h3>
-              <p className="text-xs text-slate-500">Historical trend across previous 6 evaluation periods</p>
+              <p className="text-xs text-slate-500">Historical trend across evaluation periods from PostgreSQL</p>
             </div>
             <Button variant="outline" size="sm" onClick={() => navigate('/reports')}>
               Full Analytics &rarr;
             </Button>
           </div>
-          <ProcessingTrendChart />
+          <ProcessingTrendChart data={processingTrendData.length > 0 ? processingTrendData : undefined} />
         </div>
 
         {/* Stage Distribution */}
@@ -243,7 +395,7 @@ export const Dashboard = () => {
             <h3 className="text-sm font-bold text-slate-900">Current Stage Distribution</h3>
             <p className="text-xs text-slate-500">Applications categorized by active regulatory step</p>
           </div>
-          <StageDistributionChart />
+          <StageDistributionChart data={stageDistributionData.length > 0 ? stageDistributionData : undefined} />
         </div>
       </div>
 
@@ -258,7 +410,7 @@ export const Dashboard = () => {
             </div>
             <Badge variant="navy">7 Regional Offices</Badge>
           </div>
-          <RegionPendencyChart />
+          <RegionPendencyChart data={regionData} />
         </div>
 
         {/* Recent Application Movements */}

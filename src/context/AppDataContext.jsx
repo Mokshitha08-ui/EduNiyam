@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { useAuth } from './AuthContext';
 import { INITIAL_APPLICATIONS } from '../data/mockApplications';
 import { INITIAL_WORKFLOWS } from '../data/mockWorkflows';
 import { INITIAL_COMPLIANCE } from '../data/mockCompliance';
@@ -16,12 +17,17 @@ import {
   escalationsApi,
   auditApi,
   usersApi,
+  institutionsApi,
+  adminApi,
+  dashboardApi,
   getApiBaseUrl
 } from '../services/apiService';
 
 const AppDataContext = createContext(null);
 
 export const AppDataProvider = ({ children }) => {
+  const { currentUser } = useAuth();
+
   // ================= DATA MODE STATE ================= //
   // 'dummy' (default) | 'live'
   const [dataMode, setDataModeState] = useState(() => {
@@ -110,6 +116,15 @@ export const AppDataProvider = ({ children }) => {
     }
   });
 
+  const [dummyInstitutions, setDummyInstitutions] = useState(() => {
+    try {
+      const stored = localStorage.getItem('aicte_demo_registered_institutions');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
   // ================= LIVE STATE (FROM SPRING BOOT) ================= //
   const [liveApplications, setLiveApplications] = useState([]);
   const [liveWorkflows, setLiveWorkflows] = useState([]);
@@ -119,6 +134,7 @@ export const AppDataProvider = ({ children }) => {
   const [liveEscalations, setLiveEscalations] = useState([]);
   const [liveAuditLogs, setLiveAuditLogs] = useState([]);
   const [liveUsers, setLiveUsers] = useState([]);
+  const [liveInstitutions, setLiveInstitutions] = useState([]);
 
   // Sync Dummy Data to localStorage
   useEffect(() => {
@@ -174,7 +190,8 @@ export const AppDataProvider = ({ children }) => {
         notificationsApi.getAll(),
         escalationsApi.getAll(),
         auditApi.getAll(),
-        usersApi.getAll()
+        usersApi.getAll(),
+        institutionsApi.getAll()
       ]);
 
       const [
@@ -185,7 +202,8 @@ export const AppDataProvider = ({ children }) => {
         notifRes,
         escRes,
         auditRes,
-        usersRes
+        usersRes,
+        instsRes
       ] = results;
 
       // If all calls were rejected (e.g. backend server is not running)
@@ -202,6 +220,7 @@ export const AppDataProvider = ({ children }) => {
         setLiveEscalations([]);
         setLiveAuditLogs([]);
         setLiveUsers([]);
+        setLiveInstitutions([]);
         setIsLiveLoading(false);
         return;
       }
@@ -215,6 +234,7 @@ export const AppDataProvider = ({ children }) => {
       setLiveEscalations(escRes.status === 'fulfilled' ? (escRes.value.data?.content || escRes.value.data || []) : []);
       setLiveAuditLogs(auditRes.status === 'fulfilled' ? (auditRes.value.data?.content || auditRes.value.data || []) : []);
       setLiveUsers(usersRes.status === 'fulfilled' ? (usersRes.value.data?.content || usersRes.value.data || []) : []);
+      setLiveInstitutions(instsRes.status === 'fulfilled' ? (instsRes.value.data?.content || instsRes.value.data || []) : []);
 
       setIsLiveLoading(false);
     } catch (err) {
@@ -228,6 +248,7 @@ export const AppDataProvider = ({ children }) => {
       setLiveEscalations([]);
       setLiveAuditLogs([]);
       setLiveUsers([]);
+      setLiveInstitutions([]);
       setIsLiveLoading(false);
     }
   }, []);
@@ -250,22 +271,70 @@ export const AppDataProvider = ({ children }) => {
     }
   };
 
-  // Initial fetch if live mode was persisted on refresh
+  // Fetch live data on mount, mode change, or authenticated user change
   useEffect(() => {
+    if (!currentUser) {
+      setLiveApplications([]);
+      setLiveWorkflows([]);
+      setLiveCompliance([]);
+      setLiveEvcSchedules([]);
+      setLiveNotifications([]);
+      setLiveEscalations([]);
+      setLiveAuditLogs([]);
+      return;
+    }
     if (dataMode === 'live') {
       fetchLiveData();
     }
-  }, [dataMode, fetchLiveData]);
+  }, [dataMode, currentUser?.id, currentUser?.role, currentUser?.institutionCode, fetchLiveData]);
+
+  // Scoped notifications for dummy mode: isolate institutional and role boundaries
+  const scopedDummyNotifications = useMemo(() => {
+    if (!currentUser) return [];
+    if (currentUser.role === 'ADMIN' || currentUser.role === 'SYSTEM_ADMIN') {
+      return dummyNotifications;
+    }
+    if (currentUser.role === 'COLLEGE_REP') {
+      const code = currentUser.institutionCode || '1-34981275';
+      return dummyNotifications.filter(n =>
+        n.recipientRole === 'COLLEGE_REP' &&
+        (!n.institutionCode || n.institutionCode === code || (n.message && n.message.includes(currentUser.institution || 'Vivekananda')))
+      );
+    }
+    return dummyNotifications.filter(n =>
+      n.recipientRole === currentUser.role || n.recipientRole === 'ALL'
+    );
+  }, [dummyNotifications, currentUser]);
 
   // Active dataset selection: Strictly isolate dummy vs live records
   const applications = dataMode === 'live' ? liveApplications : dummyApplications;
   const workflows = dataMode === 'live' ? liveWorkflows : dummyWorkflows;
   const compliance = dataMode === 'live' ? liveCompliance : dummyCompliance;
   const evcSchedules = dataMode === 'live' ? liveEvcSchedules : dummyEvcSchedules;
-  const notifications = dataMode === 'live' ? liveNotifications : dummyNotifications;
+  const notifications = dataMode === 'live' ? liveNotifications : scopedDummyNotifications;
   const escalations = dataMode === 'live' ? liveEscalations : dummyEscalations;
   const auditLogs = dataMode === 'live' ? liveAuditLogs : dummyAuditLogs;
   const users = dataMode === 'live' ? liveUsers : dummyUsers;
+  const institutions = dataMode === 'live' ? liveInstitutions : dummyInstitutions;
+  const pendingInstitutionsCount = institutions.filter(i => (i.status || 'PENDING_VERIFICATION') === 'PENDING_VERIFICATION').length;
+  const verifiedInstitutionsCount = institutions.filter(i => i.status === 'VERIFIED').length;
+
+  // Refresh institutions helper
+  const refreshInstitutions = async () => {
+    if (dataMode === 'live') {
+      try {
+        const res = await institutionsApi.getAll();
+        if (res.data) {
+          setLiveInstitutions(res.data);
+        }
+      } catch (err) {
+        console.warn('Failed to refresh live institutions', err);
+      }
+    } else {
+      const stored = JSON.parse(localStorage.getItem('aicte_demo_registered_institutions') || '[]');
+      setDummyInstitutions(stored);
+    }
+  };
 
   // Helper to append audit event (local dummy mode)
   const addAuditLog = ({ entityId, action, previousState, newState, reason, user }) => {
@@ -811,18 +880,56 @@ export const AppDataProvider = ({ children }) => {
     });
   };
 
-  // ================= COMPLIANCE ACTIONS ================= //
+  // ================= COMPLIANCE & DOCUMENT MANAGEMENT ACTIONS ================= //
+
+  const createComplianceObligation = async (payload, user) => {
+    if (dataMode === 'live') {
+      const res = await complianceApi.create(payload);
+      await fetchLiveData();
+      return res.data;
+    }
+
+    const newId = `CMP-${Math.floor(100 + Math.random() * 899)}`;
+    const newItem = {
+      id: newId,
+      institutionCode: payload.institutionCode,
+      institutionName: payload.institutionName,
+      region: payload.region || 'South-Central',
+      applicationId: payload.applicationId || null,
+      requirementType: payload.requirementType,
+      documentName: payload.documentName,
+      description: payload.description || '',
+      applicableClause: payload.applicableClause || 'AICTE APH 2026-27 Mandatory Undertaking',
+      documentType: 'PDF',
+      dueDate: payload.dueDate,
+      issueDate: payload.issueDate || null,
+      expiryDate: payload.expiryDate || null,
+      status: 'PENDING_SUBMISSION',
+      verificationStatus: 'PENDING_SUBMISSION',
+      deadlineStatus: 'UPCOMING',
+      validityStatus: payload.expiryDate ? 'VALID' : 'NO_EXPIRY',
+      assignedReviewer: payload.assignedReviewer || user?.name || 'Dr. Vikram Joshi',
+      version: '1.0',
+      notes: payload.notes || '',
+      ocrStatus: 'NOT_RUN'
+    };
+    setDummyCompliance(prev => [newItem, ...prev]);
+    addAuditLog({
+      entityId: newId,
+      action: 'COMPLIANCE_OBLIGATION_CREATED',
+      previousState: 'NONE',
+      newState: 'PENDING_SUBMISSION',
+      reason: `Created compliance obligation: ${payload.documentName} for ${payload.institutionName}`,
+      user
+    });
+    return newItem;
+  };
 
   const verifyComplianceDoc = async (docId, { status, reason }, user) => {
     if (dataMode === 'live') {
-      try {
-        await complianceApi.verify(docId, { status, reason });
-        await fetchLiveData();
-        return;
-      } catch (err) {
-        alert(`Failed to verify document on live backend: ${err.message}`);
-        return;
-      }
+      const res = await complianceApi.verify(docId, { status, reason });
+      await fetchLiveData();
+      return res.data;
     }
 
     let docName = '';
@@ -832,8 +939,10 @@ export const AppDataProvider = ({ children }) => {
         return {
           ...item,
           verificationStatus: status,
-          status: status === 'VERIFIED' ? 'VERIFIED' : 'ACTION_REQUIRED',
-          notes: reason ? `${item.notes || ''} [Verification note: ${reason}]` : item.notes
+          status: status,
+          verifiedBy: user?.name || 'Dr. Vikram Joshi',
+          verifiedAt: new Date().toISOString(),
+          notes: reason ? reason : item.notes
         };
       }
       return item;
@@ -841,7 +950,7 @@ export const AppDataProvider = ({ children }) => {
 
     addAuditLog({
       entityId: docId,
-      action: status === 'VERIFIED' ? 'DOCUMENT_VERIFIED' : 'DOCUMENT_CORRECTION_REQUESTED',
+      action: status === 'VERIFIED' || status === 'COMPLIANT' ? 'DOCUMENT_VERIFIED' : 'DOCUMENT_CORRECTION_REQUESTED',
       previousState: 'PENDING_VERIFICATION',
       newState: status,
       reason: reason || `Document verification outcome: ${status}`,
@@ -850,7 +959,7 @@ export const AppDataProvider = ({ children }) => {
 
     addNotification({
       category: 'VERIFICATION_UPDATE',
-      urgency: status === 'VERIFIED' ? 'NORMAL' : 'HIGH',
+      urgency: status === 'VERIFIED' || status === 'COMPLIANT' ? 'NORMAL' : 'HIGH',
       title: `Compliance Document: ${status}`,
       message: `${docName} status updated to ${status}. Remarks: ${reason || 'Satisfactory'}`,
       entityType: 'COMPLIANCE',
@@ -860,31 +969,70 @@ export const AppDataProvider = ({ children }) => {
     });
   };
 
-  const uploadComplianceDoc = async (docId, { fileName, fileSize, fileType }, user) => {
+  const uploadComplianceDoc = async (docId, { file, fileName, fileSize, fileType, declarationText, issueDate, expiryDate, notes }, user) => {
     if (dataMode === 'live') {
-      try {
+      if (file) {
         const formData = new FormData();
-        formData.append('fileName', fileName);
-        await complianceApi.upload(docId, formData);
+        formData.append('file', file);
+        if (declarationText) formData.append('declarationText', declarationText);
+        if (issueDate) formData.append('issueDate', issueDate);
+        if (expiryDate) formData.append('expiryDate', expiryDate);
+        if (notes) formData.append('notes', notes);
+        const res = await complianceApi.upload(docId, formData);
         await fetchLiveData();
-        return;
-      } catch (err) {
-        alert(`Failed to upload document to live backend: ${err.message}`);
-        return;
+        return res.data;
+      } else {
+        const res = await complianceApi.submitEvidence(docId, {
+          documentName: fileName,
+          fileSize,
+          documentType: fileType || 'PDF',
+          declarationText: declarationText || 'Submitted statutory compliance declaration and evidence.',
+          issueDate: issueDate || null,
+          expiryDate: expiryDate || null,
+          notes: notes || null
+        });
+        await fetchLiveData();
+        return res.data;
       }
     }
 
     setDummyCompliance(prev => prev.map(item => {
       if (item.id === docId) {
+        let prevHistory = [];
+        try {
+          if (item.versionHistoryJson) prevHistory = JSON.parse(item.versionHistoryJson);
+        } catch {
+          prevHistory = [];
+        }
+        prevHistory.push({
+          version: item.version || '1.0',
+          documentName: item.documentName,
+          fileSize: item.fileSize || '1.2 MB',
+          submissionDate: item.submissionDate || null,
+          submittedBy: item.submittedBy || 'College Representative',
+          verificationStatus: item.verificationStatus,
+          verifiedBy: item.verifiedBy || null,
+          archivedAt: new Date().toISOString()
+        });
+        const nextVer = (parseFloat(item.version || '1.0') + 0.1).toFixed(1);
         return {
           ...item,
           documentName: fileName || item.documentName,
           fileSize: fileSize || '2.4 MB',
           documentType: fileType || 'PDF',
+          declarationText: declarationText || item.declarationText,
+          issueDate: issueDate || item.issueDate,
+          expiryDate: expiryDate || item.expiryDate,
+          notes: notes || item.notes,
           status: 'PENDING_VERIFICATION',
           verificationStatus: 'PENDING_VERIFICATION',
+          verifiedBy: null,
+          verifiedAt: null,
           submissionDate: new Date().toISOString().split('T')[0],
-          version: `${parseFloat(item.version || '1.0') + 0.1}`.slice(0, 3)
+          submittedBy: user?.name || 'College Representative',
+          version: nextVer,
+          versionHistoryJson: JSON.stringify(prevHistory),
+          ocrStatus: 'EXTRACTED'
         };
       }
       return item;
@@ -898,6 +1046,30 @@ export const AppDataProvider = ({ children }) => {
       reason: `Uploaded new version of document: ${fileName}`,
       user
     });
+  };
+
+  const analyzeComplianceDoc = async (docId) => {
+    if (dataMode === 'live') {
+      const res = await complianceApi.analyze(docId);
+      await fetchLiveData();
+      return res.data;
+    }
+    return null;
+  };
+
+  const triggerComplianceReminders = async (thresholdDays = 30) => {
+    if (dataMode === 'live') {
+      const res = await complianceApi.triggerReminders(thresholdDays);
+      await fetchLiveData();
+      return res.data;
+    }
+    return {
+      thresholdDays,
+      remindersCreated: 2,
+      escalationsCreated: 1,
+      duplicatesSkipped: 0,
+      executedAt: new Date().toISOString()
+    };
   };
 
   // ================= NOTIFICATIONS & ESCALATIONS ================= //
@@ -928,6 +1100,89 @@ export const AppDataProvider = ({ children }) => {
     }
 
     setDummyNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const acknowledgeNotification = async (notifId, user) => {
+    if (dataMode === 'live') {
+      try {
+        await notificationsApi.acknowledge(notifId, { acknowledgedBy: user?.name });
+        await fetchLiveData();
+        return;
+      } catch (err) {
+        alert(`Failed to acknowledge notification on live backend: ${err.message}`);
+        return;
+      }
+    }
+
+    setDummyNotifications(prev => prev.map(n => {
+      if (n.id === notifId) {
+        return {
+          ...n,
+          acknowledged: true,
+          read: true,
+          acknowledgedBy: user?.name || 'Authorized Official',
+          acknowledgedAt: new Date().toISOString()
+        };
+      }
+      return n;
+    }));
+
+    addAuditLog({
+      entityId: notifId,
+      action: 'NOTIFICATION_ACKNOWLEDGED',
+      previousState: 'PENDING_ACK',
+      newState: 'ACKNOWLEDGED',
+      reason: `Alert acknowledged by ${user?.name}`,
+      user
+    });
+  };
+
+  const completeNotificationAction = async (notifId, user) => {
+    if (dataMode === 'live') {
+      try {
+        await notificationsApi.complete(notifId, { completedBy: user?.name });
+        await fetchLiveData();
+        return;
+      } catch (err) {
+        alert(`Failed to complete task on live backend: ${err.message}`);
+        return;
+      }
+    }
+
+    setDummyNotifications(prev => prev.map(n => {
+      if (n.id === notifId) {
+        return {
+          ...n,
+          actionCompleted: true,
+          acknowledged: true,
+          read: true,
+          actionCompletedBy: user?.name || 'Authorized Official',
+          actionCompletedAt: new Date().toISOString()
+        };
+      }
+      return n;
+    }));
+
+    addAuditLog({
+      entityId: notifId,
+      action: 'NOTIFICATION_ACTION_COMPLETED',
+      previousState: 'ACTION_REQUIRED',
+      newState: 'ACTION_COMPLETED',
+      reason: `Action item completed by ${user?.name}`,
+      user
+    });
+  };
+
+  const triggerSystemReminders = async () => {
+    if (dataMode === 'live') {
+      try {
+        const res = await notificationsApi.triggerReminders();
+        await fetchLiveData();
+        return res.data;
+      } catch (err) {
+        console.warn('Live trigger reminders failed', err);
+      }
+    }
   };
 
   const acknowledgeEscalation = async (escId, user) => {
@@ -1127,6 +1382,10 @@ export const AppDataProvider = ({ children }) => {
         escalations,
         auditLogs,
         users,
+        institutions,
+        pendingInstitutionsCount,
+        verifiedInstitutionsCount,
+        refreshInstitutions,
 
         // Actions
         updateApplicationStage,
@@ -1143,10 +1402,16 @@ export const AppDataProvider = ({ children }) => {
         deactivateWorkflowTemplate,
         scheduleEVCVisit,
         recordEVCCompletion,
+        createComplianceObligation,
         verifyComplianceDoc,
         uploadComplianceDoc,
+        analyzeComplianceDoc,
+        triggerComplianceReminders,
         markNotificationRead,
         markAllNotificationsRead,
+        acknowledgeNotification,
+        completeNotificationAction,
+        triggerSystemReminders,
         acknowledgeEscalation,
         addAuditLog,
         resetDemoData

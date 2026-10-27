@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public class InstitutionLoginRequest {
 
-    @NotBlank(message = "Institution Code / College ID is required")
+    @NotBlank(message = "College ID / Institution Code is required")
     private String institutionCode;
 
     @NotBlank(message = "Official Email is required")

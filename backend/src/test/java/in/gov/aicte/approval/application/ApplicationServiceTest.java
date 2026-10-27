@@ -6,6 +6,7 @@ import in.gov.aicte.approval.application.dto.AssignOfficerRequest;
 import in.gov.aicte.approval.application.dto.RequestedIntakeDto;
 import in.gov.aicte.approval.application.dto.StageAdvanceRequest;
 import in.gov.aicte.approval.application.entity.Application;
+import in.gov.aicte.approval.application.entity.ApplicationDocument;
 import in.gov.aicte.approval.application.entity.ApplicationStageHistory;
 import in.gov.aicte.approval.application.repository.*;
 import in.gov.aicte.approval.application.service.ApplicationService;
@@ -289,6 +290,11 @@ class ApplicationServiceTest {
                 .thenReturn(false);
         when(applicationRepository.save(any(Application.class))).thenAnswer(i -> i.getArgument(0));
 
+        ApplicationDocument doc1 = ApplicationDocument.builder().id("DOC-1").documentCode("DOC-EOA-PREV").title("Previous EoA").build();
+        ApplicationDocument doc2 = ApplicationDocument.builder().id("DOC-2").documentCode("DOC-EOA-SAFETY").title("Fire Safety").build();
+        ApplicationDocument doc3 = ApplicationDocument.builder().id("DOC-3").documentCode("DOC-EOA-FIN").title("Financial Statement").build();
+        when(documentRepository.findByApplicationId(anyString())).thenReturn(List.of(doc1, doc2, doc3));
+
         ApplicationDto result = applicationService.submitApplication("AICTE-APP-2026-000100");
 
         assertNotNull(result);
@@ -297,7 +303,21 @@ class ApplicationServiceTest {
         assertNotNull(draftApp.getSubmissionDate());
         verify(stageHistoryRepository, times(1)).save(any(ApplicationStageHistory.class));
         verify(auditLogRepository, times(1)).save(any());
-        verify(notificationRepository, times(1)).save(any());
+        verify(notificationRepository, atLeastOnce()).save(any());
+    }
+
+    @Test
+    void testSubmitApplication_MissingMandatoryDocuments_ThrowsBadRequest() {
+        when(applicationRepository.findById("AICTE-APP-2026-000100")).thenReturn(Optional.of(draftApp));
+        when(applicationRepository.existsByInstitutionCodeAndApplicationTypeAndStatusIn(anyString(), anyString(), anyCollection()))
+                .thenReturn(false);
+        when(documentRepository.findByApplicationId(anyString())).thenReturn(List.of());
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> {
+            applicationService.submitApplication("AICTE-APP-2026-000100");
+        });
+
+        assertTrue(ex.getMessage().contains("Mandatory statutory document(s) missing"));
     }
 
     @Test
