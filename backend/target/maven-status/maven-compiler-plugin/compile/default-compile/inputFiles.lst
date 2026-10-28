@@ -57,6 +57,7 @@
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/dto/ComplianceEvidenceSubmitRequest.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/dto/ComplianceItemDto.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/dto/ComplianceStatisticsDto.java
+/Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/dto/DocumentFieldsUpdateRequest.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/dto/VerifyComplianceRequest.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/entity/ComplianceItem.java
 /Users/mokshithagali/Desktop/aicte/backend/src/main/java/in/gov/aicte/approval/compliance/repository/ComplianceItemRepository.java

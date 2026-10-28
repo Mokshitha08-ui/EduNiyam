@@ -6,6 +6,11 @@ public class VerifyComplianceRequest {
     private String status;
     private String reason;
     private String remarks;
+    private String correctedInstitutionName;
+    private String correctedInstitutionCode;
+    private String correctedDocumentNumber;
+    private java.time.LocalDate correctedIssueDate;
+    private java.time.LocalDate correctedExpiryDate;
 
     public VerifyComplianceRequest() {
     }
@@ -44,6 +49,46 @@ public class VerifyComplianceRequest {
         if (this.reason == null) {
             this.reason = remarks;
         }
+    }
+
+    public String getCorrectedInstitutionName() {
+        return correctedInstitutionName;
+    }
+
+    public void setCorrectedInstitutionName(String correctedInstitutionName) {
+        this.correctedInstitutionName = correctedInstitutionName;
+    }
+
+    public String getCorrectedInstitutionCode() {
+        return correctedInstitutionCode;
+    }
+
+    public void setCorrectedInstitutionCode(String correctedInstitutionCode) {
+        this.correctedInstitutionCode = correctedInstitutionCode;
+    }
+
+    public String getCorrectedDocumentNumber() {
+        return correctedDocumentNumber;
+    }
+
+    public void setCorrectedDocumentNumber(String correctedDocumentNumber) {
+        this.correctedDocumentNumber = correctedDocumentNumber;
+    }
+
+    public java.time.LocalDate getCorrectedIssueDate() {
+        return correctedIssueDate;
+    }
+
+    public void setCorrectedIssueDate(java.time.LocalDate correctedIssueDate) {
+        this.correctedIssueDate = correctedIssueDate;
+    }
+
+    public java.time.LocalDate getCorrectedExpiryDate() {
+        return correctedExpiryDate;
+    }
+
+    public void setCorrectedExpiryDate(java.time.LocalDate correctedExpiryDate) {
+        this.correctedExpiryDate = correctedExpiryDate;
     }
 
     public static Builder builder() {

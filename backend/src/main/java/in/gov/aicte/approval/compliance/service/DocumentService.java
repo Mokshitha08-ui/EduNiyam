@@ -13,6 +13,7 @@ import in.gov.aicte.approval.common.exception.BadRequestException;
 import in.gov.aicte.approval.common.exception.ResourceNotFoundException;
 import in.gov.aicte.approval.security.UserPrincipal;
 import in.gov.aicte.approval.compliance.dto.VerifyComplianceRequest;
+import in.gov.aicte.approval.compliance.dto.DocumentFieldsUpdateRequest;
 import in.gov.aicte.approval.institution.entity.Institution;
 import in.gov.aicte.approval.institution.repository.InstitutionRepository;
 import in.gov.aicte.approval.notification.entity.Notification;
@@ -359,6 +360,26 @@ public class DocumentService {
             doc.setVerificationRemarks(request.getReason().trim());
         }
 
+        // Apply any manual field corrections supplied by reviewer
+        if (request.getCorrectedInstitutionName() != null || request.getCorrectedInstitutionCode() != null
+                || request.getCorrectedIssueDate() != null || request.getCorrectedExpiryDate() != null
+                || request.getCorrectedDocumentNumber() != null) {
+            applyOcrCorrections(doc, request.getCorrectedInstitutionName(), request.getCorrectedInstitutionCode(),
+                    request.getCorrectedDocumentNumber(), request.getCorrectedIssueDate(), request.getCorrectedExpiryDate(), reviewerName);
+            if (request.getCorrectedInstitutionName() != null && !request.getCorrectedInstitutionName().isBlank()) {
+                doc.setInstitutionName(request.getCorrectedInstitutionName().trim());
+            }
+            if (request.getCorrectedInstitutionCode() != null && !request.getCorrectedInstitutionCode().isBlank()) {
+                doc.setInstitutionCode(request.getCorrectedInstitutionCode().trim());
+            }
+            if (request.getCorrectedIssueDate() != null) {
+                doc.setIssueDate(request.getCorrectedIssueDate());
+            }
+            if (request.getCorrectedExpiryDate() != null) {
+                doc.setExpiryDate(request.getCorrectedExpiryDate());
+            }
+        }
+
         ApplicationDocument saved = documentRepository.save(doc);
 
         String instCode = resolveDocumentInstitutionCode(saved);
@@ -385,6 +406,89 @@ public class DocumentService {
         notificationRepository.save(notif);
 
         return ApplicationDocumentDto.fromEntity(saved);
+    }
+
+    @Transactional
+    public ApplicationDocumentDto updateExtractedFields(String id, DocumentFieldsUpdateRequest request) {
+        ApplicationDocument doc = documentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("ApplicationDocument", "id", id));
+        String instCode = resolveDocumentInstitutionCode(doc);
+        verifyInstitutionAccess(instCode);
+
+        UserPrincipal principal = getCurrentPrincipal();
+        String reviewerName = principal != null ? principal.getName() : "Compliance Officer";
+        String reviewerRole = principal != null ? principal.getRole() : "COMPLIANCE_REVIEWER";
+
+        if (principal != null && "COLLEGE_REP".equalsIgnoreCase(principal.getRole())) {
+            throw new AccessDeniedException("Access denied: Only authorised AICTE scrutiny officers can correct extracted fields.");
+        }
+
+        StringBuilder changes = new StringBuilder();
+        if (request.getInstitutionName() != null && !request.getInstitutionName().isBlank()) {
+            doc.setInstitutionName(request.getInstitutionName().trim());
+            changes.append("InstitutionName='").append(request.getInstitutionName().trim()).append("'; ");
+        }
+        if (request.getInstitutionCode() != null && !request.getInstitutionCode().isBlank()) {
+            doc.setInstitutionCode(request.getInstitutionCode().trim());
+            changes.append("InstitutionCode='").append(request.getInstitutionCode().trim()).append("'; ");
+        }
+        if (request.getIssueDate() != null) {
+            doc.setIssueDate(request.getIssueDate());
+            changes.append("IssueDate='").append(request.getIssueDate()).append("'; ");
+        }
+        if (request.getExpiryDate() != null) {
+            doc.setExpiryDate(request.getExpiryDate());
+            changes.append("ExpiryDate='").append(request.getExpiryDate()).append("'; ");
+        }
+
+        applyOcrCorrections(doc, request.getInstitutionName(), request.getInstitutionCode(),
+                request.getDocumentNumber(), request.getIssueDate(), request.getExpiryDate(), reviewerName);
+
+        // Re-evaluate deterministic analysis with corrected metadata
+        byte[] bytes = SafeStorageUtil.readStoredBytes(uploadDir, doc.getStorageKey());
+        if (bytes != null && bytes.length > 0) {
+            DocumentVerificationService.AnalysisResult analysis = verificationService.analyzeDocument(
+                    bytes,
+                    doc.getTitle(),
+                    doc.getType(),
+                    doc.getTitle(),
+                    doc.getInstitutionName(),
+                    doc.getInstitutionCode(),
+                    doc.getIssueDate(),
+                    doc.getExpiryDate()
+            );
+            doc.setAiAdvisoryJson(analysis.getAiAdvisoryJson());
+        }
+
+        ApplicationDocument saved = documentRepository.save(doc);
+
+        recordAudit(saved.getId(), reviewerName, reviewerRole, "DOCUMENT_FIELDS_CORRECTED",
+                "ORIGINAL_OCR", "MANUALLY_CORRECTED",
+                "Extracted fields manually corrected by " + reviewerName + ": " + changes + (request.getRemarks() != null ? " Remarks: " + request.getRemarks() : ""));
+
+        return ApplicationDocumentDto.fromEntity(saved);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void applyOcrCorrections(ApplicationDocument doc, String instName, String instCode, String docNo,
+                                     LocalDate issueDate, LocalDate expiryDate, String reviewerName) {
+        try {
+            Map<String, Object> ocrMap = doc.getOcrExtractedJson() != null
+                    ? objectMapper.readValue(doc.getOcrExtractedJson(), new TypeReference<Map<String, Object>>() {})
+                    : new LinkedHashMap<>();
+            Map<String, Object> fields = (Map<String, Object>) ocrMap.computeIfAbsent("extractedFields", k -> new LinkedHashMap<String, Object>());
+            if (instName != null && !instName.isBlank()) fields.put("institutionName", instName.trim());
+            if (instCode != null && !instCode.isBlank()) fields.put("institutionCode", instCode.trim());
+            if (docNo != null && !docNo.isBlank()) fields.put("documentNumber", docNo.trim());
+            if (issueDate != null) fields.put("issueDate", issueDate.toString());
+            if (expiryDate != null) fields.put("expiryDate", expiryDate.toString());
+
+            ocrMap.put("manuallyCorrected", true);
+            ocrMap.put("correctedBy", reviewerName);
+            ocrMap.put("correctedAt", LocalDateTime.now().toString());
+            doc.setOcrExtractedJson(objectMapper.writeValueAsString(ocrMap));
+        } catch (Exception ignored) {
+        }
     }
 
     @Transactional

@@ -11,6 +11,7 @@ in/gov/aicte/approval/auth/dto/StaffLoginRequest.class
 in/gov/aicte/approval/evc/dto/EvcCancelRequest.class
 in/gov/aicte/approval/audit/dto/AuditLogDto$Builder.class
 in/gov/aicte/approval/auth/AuthController.class
+in/gov/aicte/approval/compliance/dto/DocumentFieldsUpdateRequest.class
 in/gov/aicte/approval/auth/dto/UserDto.class
 in/gov/aicte/approval/compliance/controller/ComplianceController.class
 in/gov/aicte/approval/compliance/service/ComplianceService.class
@@ -122,6 +123,7 @@ in/gov/aicte/approval/application/dto/EvcMarkRequest.class
 in/gov/aicte/approval/compliance/dto/VerifyComplianceRequest$Builder.class
 in/gov/aicte/approval/auth/dto/InstitutionRegisterResponse$Builder.class
 in/gov/aicte/approval/notification/repository/EscalationRepository.class
+in/gov/aicte/approval/compliance/service/DocumentService$2.class
 in/gov/aicte/approval/workflow/entity/WorkflowStage.class
 in/gov/aicte/approval/workflow/entity/WorkflowStage$Builder.class
 in/gov/aicte/approval/application/dto/ApplicationDto$Builder.class

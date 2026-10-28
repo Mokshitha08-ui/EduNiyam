@@ -157,6 +157,9 @@ export const documentsApi = {
   verify: async (id, payload) => {
     return apiClient.post(`/documents/${id}/verify`, payload);
   },
+  updateFields: async (id, payload) => {
+    return apiClient.patch(`/documents/${id}/fields`, payload);
+  },
   analyze: async (id) => {
     return apiClient.post(`/documents/${id}/analyze`);
   },

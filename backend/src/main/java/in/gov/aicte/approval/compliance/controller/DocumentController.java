@@ -2,6 +2,7 @@ package in.gov.aicte.approval.compliance.controller;
 
 import in.gov.aicte.approval.application.dto.ApplicationDocumentDto;
 import in.gov.aicte.approval.compliance.dto.VerifyComplianceRequest;
+import in.gov.aicte.approval.compliance.dto.DocumentFieldsUpdateRequest;
 import in.gov.aicte.approval.compliance.service.DocumentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -80,6 +81,15 @@ public class DocumentController {
             @PathVariable String id,
             @RequestBody VerifyComplianceRequest request) {
         return ResponseEntity.ok(documentService.verifyDocument(id, request));
+    }
+
+    @PatchMapping("/{id}/fields")
+    @PreAuthorize("hasAnyRole('COMPLIANCE_REVIEWER', 'REGIONAL_OFFICER', 'BUREAU_OFFICER', 'SYSTEM_ADMIN', 'ADMIN')")
+    @Operation(summary = "Manually correct extracted OCR fields on a document")
+    public ResponseEntity<ApplicationDocumentDto> updateExtractedFields(
+            @PathVariable String id,
+            @RequestBody DocumentFieldsUpdateRequest request) {
+        return ResponseEntity.ok(documentService.updateExtractedFields(id, request));
     }
 
     @PostMapping("/{id}/analyze")

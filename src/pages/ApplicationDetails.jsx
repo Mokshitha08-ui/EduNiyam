@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -24,7 +24,10 @@ import {
   XCircle,
   AlertCircle,
   Download,
-  Info
+  Info,
+  RefreshCw,
+  Sparkles,
+  Edit3
 } from 'lucide-react';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
@@ -115,6 +118,37 @@ export const ApplicationDetails = () => {
   const [docReviewStatus, setDocReviewStatus] = useState('VERIFIED');
   const [docReviewRemarks, setDocReviewRemarks] = useState('');
   const [isSubmittingDocReview, setIsSubmittingDocReview] = useState(false);
+  const [isAnalyzingDoc, setIsAnalyzingDoc] = useState(false);
+  const [isEditingFields, setIsEditingFields] = useState(false);
+  const [docFieldsForm, setDocFieldsForm] = useState({
+    institutionName: '',
+    institutionCode: '',
+    documentNumber: '',
+    issueDate: '',
+    expiryDate: ''
+  });
+
+  const parsedDocOcr = useMemo(() => {
+    if (!previewDoc?.ocrExtractedJson) return null;
+    try {
+      return typeof previewDoc.ocrExtractedJson === 'string'
+        ? JSON.parse(previewDoc.ocrExtractedJson)
+        : previewDoc.ocrExtractedJson;
+    } catch (e) {
+      return null;
+    }
+  }, [previewDoc]);
+
+  const parsedDocAdvisory = useMemo(() => {
+    if (!previewDoc?.aiAdvisoryJson) return null;
+    try {
+      return typeof previewDoc.aiAdvisoryJson === 'string'
+        ? JSON.parse(previewDoc.aiAdvisoryJson)
+        : previewDoc.aiAdvisoryJson;
+    } catch (e) {
+      return null;
+    }
+  }, [previewDoc]);
 
   // Draft Edit state
   const [isEditDraftModalOpen, setIsEditDraftModalOpen] = useState(false);
@@ -431,6 +465,109 @@ export const ApplicationDetails = () => {
     }
   };
 
+  const handleOpenDocModal = (doc) => {
+    setPreviewDoc(doc);
+    setDocReviewStatus(doc.status === 'VERIFIED' ? 'VERIFIED' : (doc.status === 'REJECTED' ? 'REJECTED' : 'VERIFIED'));
+    setDocReviewRemarks(doc.verificationRemarks || '');
+    let extFields = {};
+    if (doc.ocrExtractedJson) {
+      try {
+        const parsed = typeof doc.ocrExtractedJson === 'string' ? JSON.parse(doc.ocrExtractedJson) : doc.ocrExtractedJson;
+        extFields = parsed.extractedFields || {};
+      } catch (e) {}
+    }
+    setDocFieldsForm({
+      institutionName: doc.institutionName || extFields.institutionName || '',
+      institutionCode: doc.institutionCode || extFields.institutionCode || '',
+      documentNumber: extFields.documentNumber || '',
+      issueDate: doc.issueDate || extFields.issueDate || '',
+      expiryDate: doc.expiryDate || extFields.expiryDate || ''
+    });
+    setIsEditingFields(false);
+  };
+
+  const handleRunDocAnalysis = async (doc) => {
+    if (!doc?.id) return;
+    setIsAnalyzingDoc(true);
+    try {
+      if (dataMode === 'live') {
+        const res = await documentsApi.analyze(doc.id);
+        const updated = res.data || res;
+        setPreviewDoc(updated);
+        if (application?.documents) {
+          const idx = application.documents.findIndex(d => d.id === doc.id);
+          if (idx >= 0) application.documents[idx] = updated;
+        }
+        await fetchLiveData();
+      } else {
+        doc.ocrStatus = 'EXTRACTED';
+        doc.ocrExtractedJson = JSON.stringify({
+          provider: 'local-pdf-text',
+          status: 'EXTRACTED',
+          readableTextFound: true,
+          characterCount: 380,
+          confidenceScore: 0.94,
+          textSnippet: `Institution: ${doc.institutionName || application?.institutionName || 'AICTE Institution'}\nCode: ${doc.institutionCode || application?.institutionCode || '1-34981275'}\nCertificate No: ${doc.documentCode || 'DOC-2026'}\nIssue Date: 2026-01-10\nValid Until: 2027-01-09`,
+          extractedFields: {
+            institutionName: doc.institutionName || application?.institutionName || 'AICTE Institution',
+            institutionCode: doc.institutionCode || application?.institutionCode || '1-34981275',
+            documentNumber: doc.documentCode || 'DOC-2026',
+            issueDate: '2026-01-10',
+            expiryDate: '2027-01-09'
+          }
+        });
+        doc.aiAdvisoryJson = JSON.stringify({
+          advisoryOnly: true,
+          authoritativeHumanReviewRequired: true,
+          deterministicChecks: [
+            {
+              check: 'DOCUMENT_TEXT_READABILITY',
+              title: 'Text Readability & Extraction',
+              status: 'PASSED',
+              reason: 'Machine-readable text stream successfully parsed (380 characters).',
+              evidence: 'Extracted characters: 380 chars',
+              applicableRequirement: 'APH Norms — Machine-readable statutory filing',
+              confidenceScore: 0.94
+            },
+            {
+              check: 'INSTITUTION_NAME_CONSISTENCY',
+              title: 'Institution Name Verification',
+              status: 'PASSED',
+              reason: 'Extracted institution name matches application records.',
+              evidence: `Extracted: '${doc.institutionName || application?.institutionName}' vs Registered: '${doc.institutionName || application?.institutionName}'`,
+              applicableRequirement: 'Institutional Ownership Verification',
+              confidenceScore: 0.95
+            },
+            {
+              check: 'VALIDITY_WINDOW_ACTIVE',
+              title: 'Document Validity & Expiry',
+              status: 'PASSED',
+              reason: 'Document expiry date is active and valid.',
+              evidence: 'Expiry Date: 2027-01-09',
+              applicableRequirement: 'AICTE APH Chapter VII — Active Validity',
+              confidenceScore: 1.0
+            },
+            {
+              check: 'STATUTORY_SEAL_AND_SIGNATURE_NOTICE',
+              title: 'Seal and Signature Verification Notice',
+              status: 'WARNING',
+              reason: 'Digital signature and statutory wet ink seal cannot be verified automatically. Authorised AICTE officer must visually confirm seal authenticity and signatory designation.',
+              evidence: 'Automated check does not certify notary or executive wet seal authenticity.',
+              applicableRequirement: 'AICTE Procedural Handbook Chapter II Section 3',
+              confidenceScore: null
+            }
+          ]
+        });
+        setPreviewDoc({ ...doc });
+      }
+      alert('OCR extraction & AI verification analysis completed.');
+    } catch (err) {
+      alert(`OCR analysis failed: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setIsAnalyzingDoc(false);
+    }
+  };
+
   const handleDownloadDocument = async (doc) => {
     if (!doc?.id) return;
     setDownloadingDocId(doc.id);
@@ -465,11 +602,21 @@ export const ApplicationDetails = () => {
     }
     setIsSubmittingDocReview(true);
     try {
+      const payload = {
+        status: docReviewStatus,
+        remarks: docReviewRemarks.trim()
+      };
+      if (isEditingFields) {
+        payload.correctedInstitutionName = docFieldsForm.institutionName;
+        payload.correctedInstitutionCode = docFieldsForm.institutionCode;
+        payload.correctedDocumentNumber = docFieldsForm.documentNumber;
+        payload.correctedIssueDate = docFieldsForm.issueDate || null;
+        payload.correctedExpiryDate = docFieldsForm.expiryDate || null;
+      }
       if (dataMode === 'live') {
-        await documentsApi.verify(previewDoc.id, {
-          status: docReviewStatus,
-          remarks: docReviewRemarks.trim()
-        });
+        const res = await documentsApi.verify(previewDoc.id, payload);
+        const updated = res.data || res;
+        setPreviewDoc(updated);
         await fetchLiveData();
       } else {
         previewDoc.status = docReviewStatus;
@@ -479,6 +626,7 @@ export const ApplicationDetails = () => {
       alert(`Document evaluation recorded: ${docReviewStatus}`);
       setPreviewDoc(null);
       setDocReviewRemarks('');
+      setIsEditingFields(false);
     } catch (err) {
       alert(`Failed to record document evaluation: ${err.response?.data?.message || err.message}`);
     } finally {
@@ -790,6 +938,20 @@ export const ApplicationDetails = () => {
 
                   <div className="flex items-center gap-2">
                     <StatusBadge status={doc.status} />
+                    {doc.ocrStatus && doc.ocrStatus !== 'NOT_RUN' && (
+                      <Badge
+                        variant={
+                          doc.ocrStatus === 'EXTRACTED'
+                            ? 'success'
+                            : doc.ocrStatus === 'PASSWORD_PROTECTED' || doc.ocrStatus === 'UNREADABLE_OR_SCANNED_PDF'
+                            ? 'danger'
+                            : 'warning'
+                        }
+                        size="sm"
+                      >
+                        OCR: {doc.ocrStatus}
+                      </Badge>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
@@ -803,11 +965,7 @@ export const ApplicationDetails = () => {
                       variant="outline"
                       size="sm"
                       icon={Eye}
-                      onClick={() => {
-                        setPreviewDoc(doc);
-                        setDocReviewStatus(doc.status === 'VERIFIED' ? 'VERIFIED' : (doc.status === 'REJECTED' ? 'REJECTED' : 'VERIFIED'));
-                        setDocReviewRemarks(doc.verificationRemarks || '');
-                      }}
+                      onClick={() => handleOpenDocModal(doc)}
                     >
                       Inspect & Review
                     </Button>
@@ -1298,24 +1456,35 @@ export const ApplicationDetails = () => {
         </div>
       </Modal>
 
-      {/* Modal: Document Preview & Scrutiny Verification */}
+      {/* Modal: Document Preview, OCR Extraction & Scrutiny Verification (Features 44, 45, 46, 47) */}
       <Modal
         isOpen={!!previewDoc}
         onClose={() => setPreviewDoc(null)}
-        title={previewDoc?.title || 'Document Inspection'}
+        title={previewDoc?.title || 'Document Inspection & Verification'}
         subtitle={`Document Code: ${previewDoc?.documentCode || 'N/A'} • ID: ${previewDoc?.id || ''}`}
-        maxWidth="max-w-2xl"
+        maxWidth="max-w-4xl"
         footer={
-          <div className="flex items-center justify-between w-full">
-            <Button
-              variant="outline"
-              size="sm"
-              icon={Download}
-              onClick={() => handleDownloadDocument(previewDoc)}
-              isLoading={downloadingDocId === previewDoc?.id}
-            >
-              Download Original File
-            </Button>
+          <div className="flex flex-wrap items-center justify-between w-full gap-2">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                icon={Download}
+                onClick={() => handleDownloadDocument(previewDoc)}
+                isLoading={downloadingDocId === previewDoc?.id}
+              >
+                Download Original File
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={RefreshCw}
+                onClick={() => handleRunDocAnalysis(previewDoc)}
+                isLoading={isAnalyzingDoc}
+              >
+                {isAnalyzingDoc ? 'Extracting & Analyzing...' : 'Run / Retry OCR & AI Checks'}
+              </Button>
+            </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => setPreviewDoc(null)}>
                 Close
@@ -1336,54 +1505,346 @@ export const ApplicationDetails = () => {
         }
       >
         {previewDoc && (
-          <div className="space-y-4">
-            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-xs space-y-2">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Document Title & Code:</span>
-                <span className="font-semibold text-slate-800">
-                  {previewDoc.title} ({previewDoc.documentCode || 'GENERAL'})
-                </span>
+          <div className="space-y-4 text-xs max-h-[72vh] overflow-y-auto pr-1">
+            {/* 1. Core Metadata Card */}
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-500 block">Document Title & Code</span>
+                  <div className="font-semibold text-slate-800 text-sm mt-0.5">
+                    {previewDoc.title} <span className="font-mono text-xs text-slate-500">({previewDoc.documentCode || 'GENERAL'})</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 block">Verification Status</span>
+                  <div className="mt-0.5">
+                    <StatusBadge status={previewDoc.status} />
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">File Type & Size:</span>
-                <span className="font-semibold text-slate-800">{previewDoc.type} ({previewDoc.size})</span>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
+                <div>
+                  <span className="text-slate-500 block">Format & Size:</span>
+                  <span className="font-medium text-slate-800">{previewDoc.type} ({previewDoc.size})</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Upload Date:</span>
+                  <span className="font-medium text-slate-800">{formatDate(previewDoc.uploadDate)}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Certificate Issue Date:</span>
+                  <span className="font-medium text-slate-800">{formatDate(previewDoc.issueDate) || 'Not Stated'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">Validity / Expiry Date:</span>
+                  <span className="font-medium text-slate-800">{formatDate(previewDoc.expiryDate) || 'No Expiry'}</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Upload Date:</span>
-                <span className="text-slate-800">{formatDate(previewDoc.uploadDate)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500">Current Status:</span>
-                <StatusBadge status={previewDoc.status} />
-              </div>
+
               {previewDoc.verifiedBy && (
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Verified By:</span>
-                  <span className="font-medium text-slate-700">{previewDoc.verifiedBy}</span>
+                <div className="pt-2 border-t border-slate-200 text-[11px] flex items-center justify-between">
+                  <span className="text-slate-500">Verified By: <strong className="text-slate-700">{previewDoc.verifiedBy}</strong></span>
+                  {previewDoc.verifiedAt && <span className="text-slate-400">{formatDate(previewDoc.verifiedAt)}</span>}
                 </div>
               )}
+
               {previewDoc.verificationRemarks && (
                 <div className="pt-2 border-t border-slate-200">
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                     Existing Verification Remarks
                   </span>
-                  <p className="text-slate-700 bg-white p-2 rounded border border-slate-200">
-                    {previewDoc.verificationRemarks}
+                  <p className="text-slate-700 bg-white p-2.5 rounded border border-slate-200 italic">
+                    "{previewDoc.verificationRemarks}"
                   </p>
                 </div>
               )}
             </div>
 
-            {/* Officer Scrutiny Determination Form */}
+            {/* 2. OCR Text and Field Extraction Card (Feature 44) */}
+            <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-gov-800" />
+                  <h4 className="font-bold text-slate-900 text-xs">OCR Text & Structured Field Extraction</h4>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant={
+                      previewDoc.ocrStatus === 'EXTRACTED'
+                        ? 'success'
+                        : previewDoc.ocrStatus === 'PASSWORD_PROTECTED' || previewDoc.ocrStatus === 'UNREADABLE_OR_SCANNED_PDF'
+                        ? 'danger'
+                        : 'warning'
+                    }
+                    size="sm"
+                  >
+                    OCR: {previewDoc.ocrStatus || 'NOT_RUN'}
+                  </Badge>
+                  {parsedDocOcr?.confidenceScore != null && (
+                    <Badge variant="navy" size="sm">
+                      Text Readability: {Math.round(parsedDocOcr.confidenceScore * 100)}%
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {parsedDocOcr ? (
+                <div className="space-y-3">
+                  <p className="text-slate-600 text-xs">{parsedDocOcr.message}</p>
+
+                  {/* Extracted Fields Grid */}
+                  <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        Extracted Document Fields
+                      </span>
+                      {currentUser?.role !== 'COLLEGE_REP' && (
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingFields(!isEditingFields)}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-gov-800 hover:underline"
+                        >
+                          <Edit3 className="w-3 h-3" />
+                          {isEditingFields ? 'Cancel Field Edits' : 'Correct Extracted Fields'}
+                        </button>
+                      )}
+                    </div>
+
+                    {!isEditingFields ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
+                        <div>
+                          <span className="text-[10px] uppercase text-slate-400 font-bold block">Institution Name:</span>
+                          <span className="font-medium text-slate-800">
+                            {parsedDocOcr.extractedFields?.institutionName || previewDoc.institutionName || 'Not detected'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase text-slate-400 font-bold block">Institution Code / AICTE ID:</span>
+                          <span className="font-mono font-semibold text-slate-800">
+                            {parsedDocOcr.extractedFields?.institutionCode || previewDoc.institutionCode || 'Not detected'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase text-slate-400 font-bold block">Document / Ref Number:</span>
+                          <span className="font-mono font-semibold text-slate-800">
+                            {parsedDocOcr.extractedFields?.documentNumber || 'Not detected'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase text-slate-400 font-bold block">Extracted Issue Date:</span>
+                          <span className="font-medium text-slate-800">
+                            {parsedDocOcr.extractedFields?.issueDate || formatDate(previewDoc.issueDate) || 'Not detected'}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase text-slate-400 font-bold block">Extracted Expiry Date:</span>
+                          <span className="font-medium text-slate-800">
+                            {parsedDocOcr.extractedFields?.expiryDate || formatDate(previewDoc.expiryDate) || 'No expiry found'}
+                          </span>
+                        </div>
+                        {parsedDocOcr.extractedFields?.pageCount && (
+                          <div>
+                            <span className="text-[10px] uppercase text-slate-400 font-bold block">Page Count:</span>
+                            <span className="font-medium text-slate-800">
+                              {parsedDocOcr.extractedFields.pageCount} page(s)
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5 p-2 bg-white rounded border border-slate-200 text-xs">
+                        <p className="text-[11px] text-amber-800 font-medium bg-amber-50 p-2 rounded border border-amber-200">
+                          Authorised Scrutiny Correction: Modify any field misread by automated OCR. Changes will be saved upon submitting the evaluation.
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10px] uppercase font-bold text-slate-600 mb-0.5">Institution Name</label>
+                            <input
+                              type="text"
+                              value={docFieldsForm.institutionName}
+                              onChange={(e) => setDocFieldsForm({ ...docFieldsForm, institutionName: e.target.value })}
+                              className="w-full p-1.5 rounded border border-slate-300 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] uppercase font-bold text-slate-600 mb-0.5">Institution Code</label>
+                            <input
+                              type="text"
+                              value={docFieldsForm.institutionCode}
+                              onChange={(e) => setDocFieldsForm({ ...docFieldsForm, institutionCode: e.target.value })}
+                              className="w-full p-1.5 rounded border border-slate-300 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] uppercase font-bold text-slate-600 mb-0.5">Document / Ref Number</label>
+                            <input
+                              type="text"
+                              value={docFieldsForm.documentNumber}
+                              onChange={(e) => setDocFieldsForm({ ...docFieldsForm, documentNumber: e.target.value })}
+                              className="w-full p-1.5 rounded border border-slate-300 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] uppercase font-bold text-slate-600 mb-0.5">Issue Date</label>
+                            <input
+                              type="date"
+                              value={docFieldsForm.issueDate}
+                              onChange={(e) => setDocFieldsForm({ ...docFieldsForm, issueDate: e.target.value })}
+                              className="w-full p-1.5 rounded border border-slate-300 text-xs"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] uppercase font-bold text-slate-600 mb-0.5">Expiry Date</label>
+                            <input
+                              type="date"
+                              value={docFieldsForm.expiryDate}
+                              onChange={(e) => setDocFieldsForm({ ...docFieldsForm, expiryDate: e.target.value })}
+                              className="w-full p-1.5 rounded border border-slate-300 text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {parsedDocOcr.manuallyCorrected && (
+                      <p className="text-[10px] text-emerald-700 font-semibold pt-1">
+                        ✓ Extracted fields manually reviewed and corrected by {parsedDocOcr.correctedBy}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Extracted Text Stream Snippet */}
+                  {parsedDocOcr.textSnippet && (
+                    <div>
+                      <span className="text-[10px] uppercase text-slate-400 font-bold block mb-1">
+                        Extracted Text Stream Preview ({parsedDocOcr.characterCount || 0} characters):
+                      </span>
+                      <pre className="p-2.5 rounded bg-slate-900 text-slate-100 font-mono text-[11px] whitespace-pre-wrap max-h-32 overflow-y-auto">
+                        {parsedDocOcr.textSnippet}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-4 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                  <p className="text-slate-500 text-xs">
+                    OCR extraction has not yet been triggered for this document record.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={RefreshCw}
+                    className="mt-2"
+                    onClick={() => handleRunDocAnalysis(previewDoc)}
+                    isLoading={isAnalyzingDoc}
+                  >
+                    Execute OCR & AI Advisory Check
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* 3. Deterministic Validation & AI Advisory Checks (Features 45 & 46) */}
+            <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <h4 className="font-bold text-slate-900 text-xs">Deterministic Verification & AI Advisory Checks</h4>
+                </div>
+                <Badge variant="warning" size="sm">
+                  Advisory Only — Human Review Authoritative
+                </Badge>
+              </div>
+
+              {parsedDocAdvisory ? (
+                <div className="space-y-2.5">
+                  {Array.isArray(parsedDocAdvisory.deterministicChecks) && parsedDocAdvisory.deterministicChecks.length > 0 ? (
+                    <div className="space-y-2">
+                      {parsedDocAdvisory.deterministicChecks.map((chk, idx) => (
+                        <div
+                          key={idx}
+                          className={`p-3 rounded-lg border flex flex-col sm:flex-row sm:items-start justify-between gap-2 ${
+                            chk.status === 'PASSED'
+                              ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900'
+                              : chk.status === 'FLAGGED'
+                              ? 'bg-rose-50/70 border-rose-200 text-rose-900'
+                              : 'bg-amber-50/70 border-amber-200 text-amber-900'
+                          }`}
+                        >
+                          <div className="space-y-1 flex-1">
+                            <div className="flex items-center gap-2">
+                              {chk.status === 'PASSED' ? (
+                                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                              ) : chk.status === 'FLAGGED' ? (
+                                <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                              ) : (
+                                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                              )}
+                              <span className="font-bold text-xs">
+                                {chk.title || chk.check}
+                              </span>
+                            </div>
+                            <p className="text-xs font-medium pl-6">{chk.reason}</p>
+                            {chk.evidence && (
+                              <p className="text-[11px] opacity-85 pl-6 font-mono">
+                                <strong>Evidence:</strong> {chk.evidence}
+                              </p>
+                            )}
+                            {chk.applicableRequirement && (
+                              <p className="text-[10px] opacity-75 pl-6">
+                                <strong>Requirement:</strong> {chk.applicableRequirement}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex flex-row sm:flex-col items-end gap-1 shrink-0 pt-1 sm:pt-0">
+                            <Badge
+                              variant={chk.status === 'PASSED' ? 'success' : chk.status === 'FLAGGED' ? 'danger' : 'warning'}
+                              size="sm"
+                            >
+                              {chk.status}
+                            </Badge>
+                            {chk.confidenceScore != null && (
+                              <span className="text-[10px] font-mono text-slate-500">
+                                Match: {Math.round(chk.confidenceScore * 100)}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-slate-500">No deterministic check results available.</p>
+                  )}
+
+                  {/* AI Provider Section */}
+                  <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-500">
+                    <p>
+                      <strong>External AI Engine:</strong>{' '}
+                      {parsedDocAdvisory.aiService?.provider === 'none'
+                        ? 'External LLM disabled; deterministic statutory rules applied.'
+                        : parsedDocAdvisory.aiService?.message || 'Configured'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-slate-500 text-xs">
+                  Run OCR and verification checks to inspect potential regulatory discrepancies and date validity.
+                </p>
+              )}
+            </div>
+
+            {/* 4. Officer Scrutiny Determination Form (Feature 47) */}
             {currentUser?.role !== 'COLLEGE_REP' ? (
               <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/50 text-xs space-y-3">
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-gov-800" />
-                  <h4 className="font-bold text-slate-900">Official Scrutiny Evaluation</h4>
+                  <h4 className="font-bold text-slate-900">Official Scrutiny Evaluation & Determination</h4>
                 </div>
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-700 mb-1.5">
-                    Regulatory Determination
+                    Regulatory Determination *
                   </label>
                   <div className="grid grid-cols-3 gap-2">
                     <button
@@ -1395,7 +1856,7 @@ export const ApplicationDetails = () => {
                           : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                       }`}
                     >
-                      ✓ Verified
+                      ✓ Verified (Compliant)
                     </button>
                     <button
                       type="button"
@@ -1406,7 +1867,7 @@ export const ApplicationDetails = () => {
                           : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                       }`}
                     >
-                      ⚠ Correction Req.
+                      ⚠ Correction Required
                     </button>
                     <button
                       type="button"
@@ -1417,14 +1878,14 @@ export const ApplicationDetails = () => {
                           : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                       }`}
                     >
-                      ✕ Rejected
+                      ✕ Rejected (Non-Compliant)
                     </button>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    Scrutiny Remarks & Compliance Justification *
+                    Scrutiny Remarks & Compliance Justification {docReviewStatus !== 'VERIFIED' ? '*' : '(Recommended)'}
                   </label>
                   <textarea
                     rows={3}
@@ -1443,7 +1904,7 @@ export const ApplicationDetails = () => {
                 <FileText className="w-8 h-8 text-gov-800 mx-auto mb-2 opacity-60" />
                 <p className="font-semibold text-slate-800">Secure Document Storage Record</p>
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Click the Download button below to inspect the uploaded document.
+                  Click the Download button below to inspect the uploaded document. Official determinations are rendered by the AICTE Regional Scrutiny Officer.
                 </p>
               </div>
             )}
